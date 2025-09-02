@@ -352,7 +352,7 @@ void autonomous(void)
     B_17022A();
     break;
   }
-  airspace = true; //  airspace == true
+  
 }
 
 int momogoTask()
@@ -435,24 +435,14 @@ void usercontrol(void)
 {
   if (!ran_auton)
   {
-    intakeCylander = 0;
-    airspace = false;
-    hang1.spin(forward, 6, volt);
-    wait(0.2, sec);
-    hang1.stop(hold);
-    wait(0.05, sec);
-    hang1.resetPosition();
+    hang1.resetPosition();  
   }
   else
   {
-    intakeCylander = 1;
-    airspace = true;
-    hang1.spin(forward, 6, volt);
-    wait(0.2, sec);
+
     hang1.resetPosition();
   }
   
-
   task notetask(autonoteTask, 0);
   //---------------------------------------------------
   task momogo(momogoTask, 0);
