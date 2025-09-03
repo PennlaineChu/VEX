@@ -34,10 +34,10 @@ void RW_right()
   //--------------------------------------------------------
   chassis.set_drive_constants(12, 2.0, 0.005, 2, 10);
   chassis.set_heading_constants(12, 1.5, 0.005, 2, 10);
-  cos_move_distance_smooth(10, 0, 10, 10);
+  cos_move_distance_smooth(25, 0, 10, 10);
   wait(0.05,sec);
   chassis.turn_to_angle(90);
-  cos_move_distance_smooth(10, 90, 10, 10);
+  cos_move_distance_smooth(25, -90, 10, 10);
   //----------------------------------------------------------------------
  
 }

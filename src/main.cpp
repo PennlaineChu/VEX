@@ -193,8 +193,14 @@ void hookSwitch()
     hookCylinder = !hookCylinder;
   hookcnt++;
 }
+void alignerSwitch()
+{
+  aligner = !aligner;
+}
 void hookOn()  { hookCylinder = true;  }
 void hookOff() { hookCylinder = false; }
+void alignerON()  { aligner = true;  }
+void alignerOFF() { aligner = false; }
 
 void hang() // 預留吊掛
 {
@@ -385,7 +391,6 @@ int momogoTask()
 int intakeControlTask()
 {
   intake.setMaxTorque(100, percent);
-  // 若需要也可加：intakedown.setMaxTorque(100, percent);
 
   while (true)
   {
@@ -407,24 +412,18 @@ int intakeControlTask()
       // 原本功能保留：R1
       intake.spin(forward, 12, volt);
       intakedown.spin(reverse, 12, volt);
-    
-
-      
     }
     else if (Controller1.ButtonR2.pressing())
     {
       // 原本功能保留：R2
-      intake.spin(reverse, 12, volt);
-      intakedown.spin(forward, 12, volt);
-      
+      intake.spin(forward, 12, volt);
+      intakedown.spin(reverse, 12, volt);  
     }
     else
     {
       // 停止
       intake.stop(coast);
       intakedown.stop(coast);
-
-      
     }
 
     wait(20, msec);
@@ -457,8 +456,12 @@ void usercontrol(void)
   //-----------------------------------------------------
   Controller1.ButtonB.pressed(hang); // 吊掛
   //-----------------------------------------------------
+  Controller1.ButtonDown.pressed(alignerSwitch);
+  //-----------------------------------------------------
   Controller1.ButtonR1.pressed(hookOn);
+  Controller1.ButtonR1.pressed(alignerON);
   Controller1.ButtonR1.released(hookOff);
+  Controller1.ButtonR1.released(alignerOFF);
   while (1)
   {
     if (Controller1.ButtonLeft.pressing())

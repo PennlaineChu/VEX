@@ -21,6 +21,7 @@ extern digital_out whitelight;
 extern digital_out intakeCylander;
 extern digital_out pushCylinder;
 extern digital_out hookCylinder;
+extern digital_out aligner;
 extern vex::vision Vision1;
 extern vex::vision Vision2; 
 
