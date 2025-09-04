@@ -170,7 +170,6 @@ bool auto_started = false;
 int air = 0;
 int temp = 0;
 int option = 0;
-int hookcnt = 0;
 bool airspace = false;
 bool ran_auton = false; // 是否已經跑auto模式
 
@@ -187,123 +186,387 @@ void intakecylanderoff()
 {
   intakeCylander = false;
 }
-void hookSwitch()
+void shooterSwitch()
 {
-  if (hookcnt < 999)
-    hookCylinder = !hookCylinder;
-  hookcnt++;
+    shooter = !shooter;
+
 }
 void alignerSwitch()
 {
   aligner = !aligner;
 }
-void hookOn()  { hookCylinder = true;  }
-void hookOff() { hookCylinder = false; }
-void alignerON()  { aligner = true;  }
-void alignerOFF() { aligner = false; }
+void shooterOn()  
+  {
+   shooter = true;  
+  }
+void shooterOff() {
+   shooter = false; 
+  }
+void alignerON()  
+  {
+   aligner = true;  
+  }
+void alignerOFF() 
+  {
+   aligner = false; 
+  }
 
 void hang() // 預留吊掛
 {
   pushCylinder = !pushCylinder;
   intake.stop(brake);
 }
+extern brain Brain;
+// VEXcode devices
+extern motor L1;
+extern motor L2;
+extern motor L3;
+extern motor R1;
+extern motor R2;
+extern motor R3;
+extern optical Optical;
+extern optical Optical_go;
+extern inertial Inertial;
+extern controller Controller1;
+extern motor intake;
+extern motor intakedown;
+extern motor hang1;
+extern digital_out redlight;
+extern digital_out whitelight;
+extern digital_out intakeCylander;
+extern digital_out pushCylinder;
+extern digital_out shooter;
+extern digital_out aligner;
+extern vex::vision Vision1;
+extern vex::vision Vision2;
 
+void vexcodeInit(void);
+
+struct Rect { int x, y, w, h; };
+
+static inline void fillRect(const Rect& r, vex::color fill, vex::color pen = vex::transparent) {
+  Brain.Screen.setFillColor(fill);
+  Brain.Screen.setPenColor(pen);
+  Brain.Screen.drawRectangle(r.x, r.y, r.w, r.h);
+}
+static inline void strokeRect(const Rect& r, vex::color pen) {
+  Brain.Screen.setFillColor(vex::transparent);
+  Brain.Screen.setPenColor(pen);
+  Brain.Screen.drawRectangle(r.x, r.y, r.w, r.h, vex::transparent);
+}
+static inline void drawCenteredText(const Rect& r, const std::string& s, vex::color pen=vex::white) {
+  Brain.Screen.setPenColor(pen);
+  int tw = Brain.Screen.getStringWidth(s.c_str());
+  int th = Brain.Screen.getStringHeight("A");
+  int px = r.x + (r.w - tw) / 2;
+  int py = r.y + (r.h + th) / 2; // y 是 baseline
+  Brain.Screen.printAt(px, py, false, s.c_str());
+}
+
+// 水平條（-100~100）＋內文字置中
+static inline void drawAxisBarLabeled(const char* name, int val, const Rect& labelBox, const Rect& barBox) {
+  // 左側標籤（置中）
+  fillRect(labelBox, vex::color(30,30,30));
+  strokeRect(labelBox, vex::color(80,80,80));
+  drawCenteredText(labelBox, name, vex::white);
+
+  // 條底
+  strokeRect(barBox, vex::color(90,90,90));
+  fillRect({barBox.x+1, barBox.y+1, barBox.w-2, barBox.h-2}, vex::color(20,20,20));
+
+  // 0 中線
+  int zeroX = barBox.x + barBox.w/2;
+  Brain.Screen.setPenColor(vex::color(90,90,90));
+  Brain.Screen.drawLine(zeroX, barBox.y+1, zeroX, barBox.y + barBox.h - 2);
+
+  // 值條
+  int v = val; if(v>100) v=100; if(v<-100) v=-100;
+  int half = (barBox.w-2)/2;
+  int pix = (v * half) / 100;
+  if (pix != 0) {
+    int bx = (pix>0) ? zeroX : (zeroX+pix);
+    int bw = (pix>0) ? pix : -pix;
+    fillRect({bx, barBox.y+2, bw, barBox.h-4}, (pix>0)?vex::color(0,140,220):vex::color(220,140,0));
+  }
+
+  // 內文字置中（顯示數值）
+  char buf[16];
+  snprintf(buf, sizeof(buf), "%4d", val);
+  drawCenteredText(barBox, buf, vex::color(230,230,230));
+}
+
+// 按鍵方塊
+static inline void drawButtonBox(const char* name, bool pressed, const Rect& r) {
+  vex::color fill = pressed ? vex::color(0,110,0) : vex::color(40,40,40);
+  vex::color pen  = pressed ? vex::color(0,220,0) : vex::color(90,90,90);
+  fillRect(r, fill); strokeRect(r, pen); drawCenteredText(r, name, vex::white);
+}
+
+// 小型指南針（顯示 heading 0~360）
+static inline void drawCompass(const Rect& r, double heading_deg) {
+  fillRect(r, vex::color(30,30,30)); strokeRect(r, vex::color(100,100,100));
+  // 圓
+  int cx = r.x + r.w/2, cy = r.y + r.h/2;
+  int rad = (r.w<r.h ? r.w : r.h)/2 - 4;
+  Brain.Screen.setPenColor(vex::color(160,160,160));
+  Brain.Screen.drawCircle(cx, cy, rad);
+  // N 標記
+  Brain.Screen.printAt(cx-4, r.y+12, "N");
+  // 指針（0 度朝上）
+  double radian = (heading_deg - 90.0) * 3.1415926535 / 180.0;
+  int tipX = cx + int(rad * std::cos(radian));
+  int tipY = cy + int(rad * std::sin(radian));
+  Brain.Screen.setPenColor(vex::color(255,80,80));
+  Brain.Screen.drawLine(cx, cy, tipX, tipY);
+  // 數值
+  char buf[32]; snprintf(buf, sizeof(buf), "%3.0f°", heading_deg);
+  drawCenteredText({r.x, r.y + r.h - 16, r.w, 16}, buf, vex::white);
+}
+
+// 小型 ON/OFF 方塊（氣動）
+static inline void drawPneuBox(const char* name, bool on, const Rect& r) {
+  vex::color fill = on ? vex::color(0,110,0) : vex::color(40,40,40);
+  vex::color pen  = on ? vex::color(0,220,0) : vex::color(90,90,90);
+  fillRect(r, fill); strokeRect(r, pen); drawCenteredText(r, name, vex::white);
+}
+
+// ========= 分頁列（右側顯示 Auton，不擋內容） =========
+enum DashTab { TAB_INPUTS=0, TAB_MOTORS=1 };
+static inline DashTab drawTabs(DashTab current, const char* autonText) {
+  Rect bar = {0,0,480,22}; // 矮一點，留內容空間
+  fillRect(bar, vex::color(35,35,35)); strokeRect(bar, vex::color(90,90,90));
+
+  Rect t1 = {8,  2, 92, 18};
+  Rect t2 = {t1.x + t1.w + 4, 2, 92, 18};
+
+  auto tabColor = [&](DashTab t){ return (t==current)?vex::color(60,100,180):vex::color(55,55,55); };
+  fillRect(t1, tabColor(TAB_INPUTS));  strokeRect(t1, vex::color(120,120,120));
+  fillRect(t2, tabColor(TAB_MOTORS));  strokeRect(t2, vex::color(120,120,120));
+  drawCenteredText(t1, "Inputs", vex::white);
+  drawCenteredText(t2, "Motors", vex::white);
+
+  // 右側顯示 Auton
+  Brain.Screen.setFont(vex::fontType::mono12);
+  Brain.Screen.setPenColor(vex::color(220,220,220));
+  Brain.Screen.printAt(216, 16, false, "Auton: %s", autonText);
+
+  DashTab out = current;
+  if (Brain.Screen.pressing()) {
+    int x = Brain.Screen.xPosition(), y = Brain.Screen.yPosition();
+    if (y>=t1.y && y<=t1.y+t1.h) {
+      if (x>=t1.x && x<=t1.x+t1.w) out = TAB_INPUTS;
+      else if (x>=t2.x && x<=t2.x+t2.w) out = TAB_MOTORS;
+    }
+  }
+  return out;
+}
+
+// ========= 你的馬達清單 =========
+extern motor L1,L2,L3,R1,R2,R3,intake,intakedown,hang1;
+static motor* kMotors[] = { &L1,&L2,&L3,&R1,&R2,&R3,&intake,&intakedown,&hang1 };
+static const char* kMotorNames[] = { "L1","L2","L3","R1","R2","R3","INTK","IDWN","HANG" };
+static const int kMotorCount = sizeof(kMotors)/sizeof(kMotors[0]);
+
+// ========= Dashboard（雙分頁：Inputs / Motors） =========
+static inline void show_status_page(int selectedAuton) {
+  while (Brain.Screen.pressing()) wait(10, msec);
+
+  const char* labels[10] = {
+    "R_right","R_left","R_right_F","R_left_F","R_solo",
+    "B_right","B_left","B_right_F","B_left_F","B_solo"
+  };
+  DashTab tab = TAB_INPUTS;
+  Brain.Screen.setFont(vex::fontType::mono12);
+
+  // 版面參數
+  const int  MARGIN  = 8;
+  const int  TAB_H   = 22;
+  const Rect content = { MARGIN, TAB_H + MARGIN, 480 - 2*MARGIN, 240 - (TAB_H + 2*MARGIN) };
+
+  while (true) {
+    fillRect({0,0,480,240}, vex::color(18,18,18));
+    // 分頁列（右側顯示 Auton，不遮內容）
+    tab = drawTabs(tab, labels[selectedAuton]);
+
+    if (tab == TAB_INPUTS) {
+      // ===== Inputs 頁 =====
+      // 左：Axis 四條（標籤 36px、條 55%）
+      int labelW = 36;
+      int barW   = (int)(content.w * 0.55);
+      int barH   = 20;
+      int gapY   = 8;
+      int axLeft = content.x;
+      int axTop  = content.y;
+
+      int a1 = Controller1.Axis1.position();
+      int a2 = Controller1.Axis2.position();
+      int a3 = Controller1.Axis3.position();
+      int a4 = Controller1.Axis4.position();
+
+      drawAxisBarLabeled("A1", a1, {axLeft,             axTop + 0*(barH+gapY), labelW, barH},
+                                {axLeft+labelW+6,       axTop + 0*(barH+gapY), barW,   barH});
+      drawAxisBarLabeled("A2", a2, {axLeft,             axTop + 1*(barH+gapY), labelW, barH},
+                                {axLeft+labelW+6,       axTop + 1*(barH+gapY), barW,   barH});
+      drawAxisBarLabeled("A3", a3, {axLeft,             axTop + 2*(barH+gapY), labelW, barH},
+                                {axLeft+labelW+6,       axTop + 2*(barH+gapY), barW,   barH});
+      drawAxisBarLabeled("A4", a4, {axLeft,             axTop + 3*(barH+gapY), labelW, barH},
+                                {axLeft+labelW+6,       axTop + 3*(barH+gapY), barW,   barH});
+
+      // 右上：指南針（80×80 小卡）
+      Rect compass = { content.x + content.w - 90, axTop, 80, 80 };
+      drawCompass(compass, Inertial.heading(degrees));
+
+      // 右側：按鍵 3×4 小矩陣
+      int gridX = content.x + content.w - (3*70 + 2*6); // 每格寬 70、間距 6
+      int gridY = compass.y + compass.h + 6;
+      int bw    = 70, bh = 20, sp = 6;
+
+      drawButtonBox("A",   Controller1.ButtonA.pressing(),   {gridX + 0*(bw+sp), gridY + 0*(bh+sp), bw, bh});
+      drawButtonBox("B",   Controller1.ButtonB.pressing(),   {gridX + 1*(bw+sp), gridY + 0*(bh+sp), bw, bh});
+      drawButtonBox("X",   Controller1.ButtonX.pressing(),   {gridX + 2*(bw+sp), gridY + 0*(bh+sp), bw, bh});
+
+      drawButtonBox("Y",   Controller1.ButtonY.pressing(),   {gridX + 0*(bw+sp), gridY + 1*(bh+sp), bw, bh});
+      drawButtonBox("L1",  Controller1.ButtonL1.pressing(),  {gridX + 1*(bw+sp), gridY + 1*(bh+sp), bw, bh});
+      drawButtonBox("L2",  Controller1.ButtonL2.pressing(),  {gridX + 2*(bw+sp), gridY + 1*(bh+sp), bw, bh});
+
+      drawButtonBox("R1",  Controller1.ButtonR1.pressing(),  {gridX + 0*(bw+sp), gridY + 2*(bh+sp), bw, bh});
+      drawButtonBox("R2",  Controller1.ButtonR2.pressing(),  {gridX + 1*(bw+sp), gridY + 2*(bh+sp), bw, bh});
+      drawButtonBox("Up",  Controller1.ButtonUp.pressing(),  {gridX + 2*(bw+sp), gridY + 2*(bh+sp), bw, bh});
+
+      drawButtonBox("Down", Controller1.ButtonDown.pressing(), {gridX + 0*(bw+sp), gridY + 3*(bh+sp), bw, bh});
+      drawButtonBox("Left", Controller1.ButtonLeft.pressing(), {gridX + 1*(bw+sp), gridY + 3*(bh+sp), bw, bh});
+      drawButtonBox("Right",Controller1.ButtonRight.pressing(),{gridX + 2*(bw+sp), gridY + 3*(bh+sp), bw, bh});
+
+      // 最底：氣動 ON/OFF（6 顆）
+      int pneuY = content.y + content.h - 20;   // 最底一行
+      int pneuW = 68, pneuH = 18, pneuSP = 6;
+      int pneuX = content.x;
+
+      drawPneuBox("no status",  redlight.value(),       {pneuX + 0*(pneuW+pneuSP), pneuY, pneuW, pneuH});
+      drawPneuBox("no status",  whitelight.value(),     {pneuX + 1*(pneuW+pneuSP), pneuY, pneuW, pneuH});
+      drawPneuBox("INTK",   intakeCylander.value(), {pneuX + 2*(pneuW+pneuSP), pneuY, pneuW, pneuH});
+      drawPneuBox("PUSH",   pushCylinder.value(),   {pneuX + 3*(pneuW+pneuSP), pneuY, pneuW, pneuH});
+      drawPneuBox("SHOT",   shooter.value(),        {pneuX + 4*(pneuW+pneuSP), pneuY, pneuW, pneuH});
+      drawPneuBox("ALIGN",  aligner.value(),        {pneuX + 5*(pneuW+pneuSP), pneuY, pneuW, pneuH});
+
+    } else {
+      // ===== Motors 頁 =====
+      Rect table = { content.x, content.y, content.w, content.h - 2 };
+      strokeRect(table, vex::color(90,90,90));
+      Brain.Screen.setPenColor(vex::color(200,200,200));
+      Brain.Screen.printAt(table.x, table.y - 2, "Motor position (deg)");
+
+      const int colW = (table.w - 16) / 2; // 兩欄
+      const int c1x  = table.x + 8;
+      const int c2x  = table.x + 8 + colW;
+      const int rowH = 16;
+      int rowTop = table.y + 10;
+
+      for (int i = 0; i < kMotorCount; ++i) {
+        int colX = (i % 2 == 0) ? c1x : c2x;
+        int rowY = rowTop + (i / 2) * rowH;
+
+        const char* name = (i < (int)(sizeof(kMotorNames)/sizeof(kMotorNames[0]))) ? kMotorNames[i] : "M?";
+        double posDeg = 0.0;
+        if (kMotors[i]) posDeg = kMotors[i]->position(degrees);
+
+        Brain.Screen.setPenColor(vex::white);
+        Brain.Screen.printAt(colX, rowY, false, "%-6s %8.1f", name, posDeg);
+      }
+    }
+
+    // 觸控返回（點 tabs 區域只切換，不返回）
+    if (Brain.Screen.pressing()) {
+      int tx = Brain.Screen.xPosition(), ty = Brain.Screen.yPosition();
+      if (!(ty >= 0 && ty <= TAB_H)) {
+        while (Brain.Screen.pressing()) wait(10, msec);
+        break;
+      }
+    }
+
+    wait(80, msec);
+  }
+}
+// ======================== 第一頁（選擇自走） =========================
 void pre_auton(void)
 {
-  // Initializing Robot Configuration. DO NOT REMOVE!
   vexcodeInit();
   default_constants();
+
   Inertial.calibrate();
-  while (Inertial.isCalibrating())
-  {
-    // 等待校準完成
+  while (Inertial.isCalibrating()) {
     whitelight = 0;
-  };
+  }
   Controller1.Screen.print("ok");
   redlight = 1;
   whitelight = 1;
 
-  // 定義顏色
-  vex::color red = vex::color::red;
-  vex::color blue = vex::color::blue;
+  vex::color red   = vex::color::red;
+  vex::color blue  = vex::color::blue;
   vex::color white = vex::color::white;
 
-  // 畫面刷新標記
   int previous_selection = -1;
 
-  // 設定畫布區域
-  const int usable_height = 240;            // 螢幕的有效高度
-  const int row_height = usable_height / 2; // 每行的高度
-  const int col_width = 480 / 5;            // 每列的寬度
+  const int cols      = 5;
+  const int screen_w  = 480;
+  const int screen_h  = 240;
+  const int col_width = screen_w / cols;
 
-  // 修改紅色區域的高度，讓紅色區域略多
-  const int red_height = row_height + 6;  // 調整紅色區域的高度
-  const int blue_height = row_height - 6; // 調整藍色區域的高度
+  const int red_height  = screen_h / 2 + 6;
+  const int blue_height = screen_h - red_height;
+
+  const char* labels[10] = {
+    "R_right","R_left","R_right_F","R_left_F","R_solo",
+    "B_right","B_left","B_right_F","B_left_F","B_solo"
+  };
+
+  Brain.Screen.setFont(vex::fontType::mono20);
 
   while (!auto_started)
   {
-    // 每次只更新選擇的格子
     if (current_auton_selection != previous_selection)
     {
       previous_selection = current_auton_selection;
 
       for (int i = 0; i < 10; i++)
       {
-        int x = (i % 5) * col_width;      // 計算格子的 x 座標
-        int y = (i < 5) ? 0 : red_height; // 計算格子的 y 座標，前5個為紅色區域，後5個為藍色區域
-        vex::color fillColor = (current_auton_selection == i) ? white : (i < 5 ? red : blue);
+        int col = i % cols;
+        bool top = (i < cols);
 
-        // 畫格子背景
+        int x = col * col_width;
+        int y = top ? 0 : red_height;
+        int h = top ? red_height : blue_height;
+
+        vex::color fillColor = (current_auton_selection == i) ? white : (top ? red : blue);
+        vex::color textColor = (current_auton_selection == i) ? red   : white;
+
         Brain.Screen.setFillColor(fillColor);
-        Brain.Screen.drawRectangle(x, y, col_width, (i < 5 ? red_height : blue_height));
+        Brain.Screen.drawRectangle(x, y, col_width, h);
 
-        // 畫文字
-        Brain.Screen.setFont(vex::fontType::mono20);
-        Brain.Screen.setPenColor((current_auton_selection == i) ? red : white);
-
-        if (i == 0)
-          Brain.Screen.printAt(x + 10, y + 60, "RW_right ");
-        if (i == 1)
-          Brain.Screen.printAt(x + 10, y + 60, "R3_right ");
-        if (i == 2)
-          Brain.Screen.printAt(x + 10, y + 60, "RW_left");
-        if (i == 3)
-          Brain.Screen.printAt(x + 10, y + 60, "R5_left");
-        if (i == 4)
-          Brain.Screen.printAt(x + 10, y + 60, "R_SOLO");
-        if (i == 5)
-          Brain.Screen.printAt(x + 10, y + 60, "BW_left");
-        if (i == 6)
-          Brain.Screen.printAt(x + 10, y + 60, "B3_left");
-        if (i == 7)
-          Brain.Screen.printAt(x + 10, y + 60, "BW_right");
-        if (i == 8)
-          Brain.Screen.printAt(x + 10, y + 60, "B_SOLO");
-        if (i == 9)
-          Brain.Screen.printAt(x + 10, y + 60, "B_17022A");
+        Rect r { x, y, col_width, h };
+        drawCenteredText(r, labels[i], textColor);
       }
     }
 
-    // 檢查觸控範圍
     if (Brain.Screen.pressing())
     {
       int touchX = Brain.Screen.xPosition();
       int touchY = Brain.Screen.yPosition();
 
-      // 判斷觸控的是哪個格子
-      int col = touchX / col_width;        // 每列寬度為 col_width
-      int row = (touchY - 0) / row_height; // 計算行數，從紅色區域開始
+      int col = touchX / col_width;
+      int row = (touchY < red_height) ? 0 : (touchY < red_height + blue_height ? 1 : -1);
 
-      // 更新選擇的格子
-      if (row >= 0 && row < 2)
-      { // 確保觸控在有效範圍內
-        current_auton_selection = col + row * 5;
+      if (col >= 0 && col < cols && (row == 0 || row == 1)) {
+        current_auton_selection = col + row * cols;
+
+        // 進入第二頁（Dashboard）
+        show_status_page(current_auton_selection);
       }
 
-      wait(0.3, sec); // 防止重複觸發
+      wait(0.3, sec);
     }
 
-    wait(20, msec); // 確保程式執行穩定
+    wait(20, msec);
   }
 }
 
@@ -328,34 +591,34 @@ void autonomous(void)
   {
 
   case 0:
-    RW_right();
+    R_right();
     break;
   case 1:
-    R3_right();
+    R_left();
     break;
   case 2:
-    RW_left();
+    R_right_final();
     break;
   case 3:
-    R5_left();
+    R_left_final();
     break;
   case 4:
-    skills();
+    R_solo();
     break;
   case 5:
-    BW_left();
+    B_right();
     break;
   case 6:
-    B3_left();
+    B_left();
     break;
   case 7:
-    BW_right();
+    B_right_final();
     break;
   case 8:
-    B5_right();
+    B_left_final();
     break;
   case 9:
-    B_17022A();
+    B_solo();
     break;
   }
   
@@ -434,12 +697,11 @@ void usercontrol(void)
 {
   if (!ran_auton)
   {
-    hang1.resetPosition();  
+    // 若未跑過 auto
   }
   else
   {
-
-    hang1.resetPosition();
+    // 若已跑過 auto
   }
   
   task notetask(autonoteTask, 0);
@@ -450,35 +712,20 @@ void usercontrol(void)
   //-----------------------------------------------------
   task hangTask(hangControlTask, 0);
   //-----------------------------------------------------
-  Controller1.ButtonY.pressed(hookSwitch);
+  Controller1.ButtonY.pressed(shooterSwitch);
   //-----------------------------------------------------
   Controller1.ButtonRight.pressed(intakecylanderon);
   //-----------------------------------------------------
-  Controller1.ButtonB.pressed(hang); // 吊掛
+  Controller1.ButtonB.pressed(hang); //屁股
   //-----------------------------------------------------
   Controller1.ButtonDown.pressed(alignerSwitch);
   //-----------------------------------------------------
-  Controller1.ButtonR1.pressed(hookOn);
+  Controller1.ButtonR1.pressed(shooterOn);
   Controller1.ButtonR1.pressed(alignerON);
-  Controller1.ButtonR1.released(hookOff);
+  Controller1.ButtonR1.released(shooterOff);
   Controller1.ButtonR1.released(alignerOFF);
   while (1)
   {
-    if (Controller1.ButtonLeft.pressing())
-    {
-      selectedTeamColor = vex::color::red; // 紅隊
-      Optical.setLightPower(100, percent); // 開啟燈光
-    }
-    else if (Controller1.ButtonRight.pressing())
-    {
-      selectedTeamColor = vex::color::blue; // 藍隊
-      Optical.setLightPower(100, percent);  // 開啟燈光
-    }
-    else if (Controller1.ButtonUp.pressing())
-    {
-      selectedTeamColor = vex::color::black; // 無隊伍（禁用）
-      Optical.setLightPower(0, percent);     // 關閉燈光
-    }
     chassis.control_tank(100); // 底盤控制
   }
   wait(20, msec);

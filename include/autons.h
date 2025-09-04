@@ -7,14 +7,18 @@ extern Drive chassis;
 
 void default_constants();
 
-void RW_right();
-void R3_right();
-void RW_left();
-void R5_left();
-void BW_right();
-void B3_left();
-void BW_left();
-void B5_right();
+void R_right();
+void R_left();
+void R_right_final();
+void R_left_final();
+void R_solo();
+void B_right();
+void B_left();
+void B_right_final();
+void B_left_final();
+void B_solo();
+
+
 void B_17022A();
 
 void skills();
