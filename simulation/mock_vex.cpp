@@ -1,9 +1,13 @@
 #include "mock_vex.h"
+#include "simulation_framework.h"
 #include <iostream>
 #include <iomanip>
 #include <sstream>
 #include <cstdarg>
 #include <cstring>
+
+// Global recorder pointer for automatic snapshot recording
+StateRecorder* g_active_recorder = nullptr;
 
 // SimulationFramework implementation
 void SimulationFramework::reset() {

@@ -1,5 +1,6 @@
 #include "mock_drive.h"
 #include "mock_robot_config.h"
+#include "simulation_framework.h"
 #include <cmath>
 
 // Global chassis instance
@@ -43,19 +44,44 @@ void cos_move_distance_smooth(double distance_in, double angle_deg, double turn_
         sim.step(std::abs(heading_error) * 10); // 10ms per degree of turn
     }
     
-    // Simulate forward movement (convert clock heading to math coordinates)
+    // Simulate forward movement incrementally (convert clock heading to math coordinates)
     // Clock system: 0° = North (+Y), 90° = East (+X)
     double angle_rad = (90.0 - angle_deg) * M_PI / 180.0;
-    sim.getState().x += distance_in * cos(angle_rad);
-    sim.getState().y += distance_in * sin(angle_rad);
     
-    // Update distance trackers for forward movement (both wheels travel same distance)
-    sim.getState().left_distance += std::abs(distance_in);
-    sim.getState().right_distance += std::abs(distance_in);
+    // Break movement into small increments for smooth simulation
+    const double step_size = 2.0; // inches per step
+    const double step_time = 200; // ms per step (10 inches/second = 2 inches/200ms)
     
-    // Simulate time for movement (assuming 10 inches per second)
-    double movement_time_ms = std::abs(distance_in) * 100; // 100ms per inch
-    sim.step(movement_time_ms);
+    double remaining_distance = std::abs(distance_in);
+    double direction = (distance_in >= 0) ? 1.0 : -1.0;
+    
+    while (remaining_distance > 0.1) { // Continue until very close
+        double step_distance = std::min(step_size, remaining_distance);
+        
+        // Move incrementally
+        sim.getState().x += direction * step_distance * cos(angle_rad);
+        sim.getState().y += direction * step_distance * sin(angle_rad);
+        
+        // Update distance trackers
+        sim.getState().left_distance += step_distance;
+        sim.getState().right_distance += step_distance;
+        
+        // Advance time
+        sim.step(step_time);
+        
+        remaining_distance -= step_distance;
+        
+        std::cout << "[" << sim.getTime() << "ms] Position: (" 
+                  << sim.getState().x << ", " << sim.getState().y 
+                  << "), Remaining: " << remaining_distance << " inches" << std::endl;
+        
+        // Record snapshot for CSV data (if recorder is active)
+        // We'll use a global recorder instance
+        extern StateRecorder* g_active_recorder;
+        if (g_active_recorder) {
+            g_active_recorder->recordSnapshot();
+        }
+    }
     
     std::cout << "[" << sim.getTime() << "ms] Movement complete. Position: (" 
               << sim.getState().x << ", " << sim.getState().y << "), Heading: " 

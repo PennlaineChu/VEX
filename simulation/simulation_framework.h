@@ -43,6 +43,12 @@ struct TestCase {
     TestCase(const std::string& test_name) : name(test_name) {}
 };
 
+// Forward declaration
+class StateRecorder;
+
+// Global recorder pointer for automatic snapshot recording
+extern StateRecorder* g_active_recorder;
+
 // Robot state recorder for analysis
 class StateRecorder {
 public:
@@ -58,10 +64,14 @@ public:
     void startRecording() {
         recording = true;
         snapshots.clear();
+        g_active_recorder = this; // Set as active recorder for automatic snapshots
     }
     
     void stopRecording() {
         recording = false;
+        if (g_active_recorder == this) {
+            g_active_recorder = nullptr; // Clear active recorder
+        }
     }
     
     void recordSnapshot() {

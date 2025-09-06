@@ -83,9 +83,9 @@ def create_ascii_plot(data):
     min_y -= padding
     max_y += padding
     
-    # Plot dimensions
-    width = 60
-    height = 20
+    # Plot dimensions (increased for better resolution)
+    width = 80
+    height = 30
     
     # Create grid
     grid = [[' ' for _ in range(width)] for _ in range(height)]
@@ -178,6 +178,60 @@ def analyze_movement_phases(data):
               f"{phase['duration']:10.1f}  {phase['distance']:11.2f}  "
               f"{phase['speed']:10.2f}  {phase['heading_change']:8.1f}")
 
+def create_detailed_path_trace(data):
+    """Create a detailed trace showing all incremental movements"""
+    print("\n=== DETAILED PATH TRACE ===")
+    print("Showing every movement step (incremental data points):")
+    print()
+    
+    movement_segments = []
+    current_segment = []
+    
+    # Group consecutive points with same heading (same movement)
+    for i, point in enumerate(data):
+        if i == 0:
+            current_segment = [point]
+            continue
+            
+        # Check if this is a new movement (heading change or significant time gap)
+        prev_point = data[i-1]
+        time_gap = point['timestamp'] - prev_point['timestamp']
+        heading_change = abs(point['heading'] - prev_point['heading'])
+        
+        if heading_change > 1.0 or time_gap > 500:  # New movement
+            if len(current_segment) > 1:
+                movement_segments.append(current_segment)
+            current_segment = [point]
+        else:
+            current_segment.append(point)
+    
+    # Add the last segment
+    if len(current_segment) > 1:
+        movement_segments.append(current_segment)
+    
+    # Display each movement segment
+    for seg_idx, segment in enumerate(movement_segments, 1):
+        if len(segment) < 2:
+            continue
+            
+        start = segment[0]
+        end = segment[-1]
+        
+        print(f"Movement {seg_idx}: {start['timestamp']:.0f}ms - {end['timestamp']:.0f}ms")
+        print(f"  Heading: {start['heading']:.0f}° | Steps: {len(segment)} | Duration: {(end['timestamp']-start['timestamp'])/1000:.1f}s")
+        
+        # Show incremental steps for this movement
+        for i, point in enumerate(segment):
+            if i == 0:
+                print(f"    Start: ({point['x']:.2f}, {point['y']:.2f})")
+            elif i == len(segment) - 1:
+                print(f"    End:   ({point['x']:.2f}, {point['y']:.2f})")
+            else:
+                # Show every few intermediate steps to avoid clutter
+                if len(segment) <= 5 or i % max(1, len(segment)//3) == 0:
+                    print(f"    Step:  ({point['x']:.2f}, {point['y']:.2f}) at {point['timestamp']:.0f}ms")
+        print()
+
 def main():
     if len(sys.argv) != 2:
         print("Usage: python3 simple_visualizer.py <csv_file>")
@@ -194,6 +248,7 @@ def main():
     
     print_summary(data)
     create_ascii_plot(data)
+    create_detailed_path_trace(data)
     print_waypoints(data)
     analyze_movement_phases(data)
     
