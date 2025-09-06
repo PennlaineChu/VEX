@@ -1,0 +1,48 @@
+#include "mock_drive.h"
+#include "mock_robot_config.h"
+#include <cmath>
+
+// Global chassis instance
+Drive chassis;
+
+// Mock implementation of cos_move_distance_smooth
+void cos_move_distance_smooth(double distance_in, double angle_deg, double turn_maxV, double drive_maxV) {
+    auto& sim = SimulationFramework::getInstance();
+    
+    std::cout << "[" << sim.getTime() << "ms] cos_move_distance_smooth: " 
+              << distance_in << " inches at " << angle_deg << " degrees" << std::endl;
+    
+    // Simulate the movement
+    double current_heading = sim.getState().heading;
+    double heading_error = angle_deg - current_heading;
+    
+    // Normalize heading error for clock system (shortest path)
+    while (heading_error > 180.0) heading_error -= 360.0;
+    while (heading_error < -180.0) heading_error += 360.0;
+    
+    // Simulate turning to correct heading first
+    if (std::abs(heading_error) > 5.0) {
+        sim.getState().heading = angle_deg;
+        // Normalize to 0-359 degrees
+        while (sim.getState().heading >= 360.0) sim.getState().heading -= 360.0;
+        while (sim.getState().heading < 0.0) sim.getState().heading += 360.0;
+        sim.step(std::abs(heading_error) * 10); // 10ms per degree of turn
+    }
+    
+    // Simulate forward movement (convert clock heading to math coordinates)
+    double angle_rad = (angle_deg - 90.0) * M_PI / 180.0;
+    sim.getState().x += distance_in * cos(angle_rad);
+    sim.getState().y += distance_in * sin(angle_rad);
+    
+    // Update distance trackers
+    sim.getState().left_distance += std::abs(distance_in);
+    sim.getState().right_distance += std::abs(distance_in);
+    
+    // Simulate time for movement (assuming 10 inches per second)
+    double movement_time_ms = std::abs(distance_in) * 100; // 100ms per inch
+    sim.step(movement_time_ms);
+    
+    std::cout << "[" << sim.getTime() << "ms] Movement complete. Position: (" 
+              << sim.getState().x << ", " << sim.getState().y << "), Heading: " 
+              << sim.getState().heading << std::endl;
+}
