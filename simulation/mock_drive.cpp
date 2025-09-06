@@ -30,7 +30,8 @@ void cos_move_distance_smooth(double distance_in, double angle_deg, double turn_
     }
     
     // Simulate forward movement (convert clock heading to math coordinates)
-    double angle_rad = (angle_deg - 90.0) * M_PI / 180.0;
+    // Clock system: 0° = North (+Y), 90° = East (+X)
+    double angle_rad = (90.0 - angle_deg) * M_PI / 180.0;
     sim.getState().x += distance_in * cos(angle_rad);
     sim.getState().y += distance_in * sin(angle_rad);
     

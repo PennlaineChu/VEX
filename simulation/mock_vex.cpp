@@ -54,8 +54,11 @@ void SimulationFramework::step(double dt_ms) {
     while (state.heading >= 360.0) state.heading -= 360.0;
     while (state.heading < 0.0) state.heading += 360.0;
     
-    // Convert clock heading to math coordinates (0° = North, not East)
-    double heading_rad = (state.heading - 90.0) * M_PI / 180.0;
+    // Convert clock heading to math coordinates (0° = North = +Y)
+    // In clock system: 0° = North (+Y), 90° = East (+X)
+    // In math system: 0° = East (+X), 90° = North (+Y)
+    // So we need to rotate by 90° and flip Y
+    double heading_rad = (90.0 - state.heading) * M_PI / 180.0;
     state.x += linear_velocity * cos(heading_rad) * dt_sec;
     state.y += linear_velocity * sin(heading_rad) * dt_sec;
     

@@ -49,6 +49,7 @@ public:
     struct StateSnapshot {
         double timestamp;
         double x, y, heading;
+        double left_distance, right_distance;
         std::map<std::string, double> motor_positions;
         std::map<std::string, double> motor_velocities;
         std::map<std::string, bool> pneumatic_states;
@@ -72,6 +73,8 @@ public:
         snapshot.x = sim.getState().x;
         snapshot.y = sim.getState().y;
         snapshot.heading = sim.getState().heading;
+        snapshot.left_distance = sim.getState().left_distance;
+        snapshot.right_distance = sim.getState().right_distance;
         snapshot.motor_positions = sim.getState().motor_positions;
         snapshot.motor_velocities = sim.getState().motor_velocities;
         snapshot.pneumatic_states = sim.getState().pneumatic_states;
@@ -90,7 +93,8 @@ public:
                  << snapshot.x << ","
                  << snapshot.y << ","
                  << snapshot.heading << ","
-                 << "0,0\n"; // Placeholder for distances
+                 << snapshot.left_distance << ","
+                 << snapshot.right_distance << "\n";
         }
     }
     
