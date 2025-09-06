@@ -22,6 +22,20 @@ void cos_move_distance_smooth(double distance_in, double angle_deg, double turn_
     
     // Simulate turning to correct heading first
     if (std::abs(heading_error) > 5.0) {
+        // Calculate differential wheel distances for turning
+        const double wheelbase = 12.0; // inches between wheels
+        double turn_arc_length = std::abs(heading_error) * M_PI / 180.0 * (wheelbase / 2.0);
+        
+        if (heading_error > 0) {
+            // Turning left: right wheel travels more
+            sim.getState().left_distance += turn_arc_length * 0.5;
+            sim.getState().right_distance += turn_arc_length * 1.5;
+        } else {
+            // Turning right: left wheel travels more  
+            sim.getState().left_distance += turn_arc_length * 1.5;
+            sim.getState().right_distance += turn_arc_length * 0.5;
+        }
+        
         sim.getState().heading = angle_deg;
         // Normalize to 0-359 degrees
         while (sim.getState().heading >= 360.0) sim.getState().heading -= 360.0;
@@ -35,7 +49,7 @@ void cos_move_distance_smooth(double distance_in, double angle_deg, double turn_
     sim.getState().x += distance_in * cos(angle_rad);
     sim.getState().y += distance_in * sin(angle_rad);
     
-    // Update distance trackers
+    // Update distance trackers for forward movement (both wheels travel same distance)
     sim.getState().left_distance += std::abs(distance_in);
     sim.getState().right_distance += std::abs(distance_in);
     
