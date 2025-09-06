@@ -72,6 +72,40 @@ void R_solo()
 void B_right()
 {
   vex::color selectedTeamColor = vex::color::blue;
+
+  chassis.set_drive_constants(12, 2.0, 0.005, 2, 10);
+  chassis.set_heading_constants(12, 1.5, 0.005, 2, 10);
+  intakedown.spin(forward, 10, volt);
+  wait(0.05,sec);
+  cos_move_distance_smooth(20, 16, 10, 8);
+  wait(1.5,sec);
+  cos_move_distance_smooth(17, 305, 8, 6);
+  wait(0.05,sec);
+  intake.spin(reverse, 10, volt);
+  wait(0.05,sec);
+  intakedown.spin(reverse, 10, volt);
+  wait(2,sec);
+  intakedown.stop();
+  wait(0.05,sec);
+  intake.stop();
+  cos_move_distance_smooth(-10, 310, 10, 10);
+  wait(0.05,sec);
+  intake.spin(forward, 10, volt);
+  wait(0.05,sec);
+  intakedown.spin(forward, 10, volt);
+  cos_move_distance_smooth(30, 138, 10, 10);
+  intakeCylander.set(true);
+  cos_move_distance_smooth(10, 138, 10, 10);
+  wait(2,sec);
+  cos_move_distance_smooth(-2, 140, 10, 10);
+  intakeCylander.set(false);
+  aligner.set(true);
+  shooter.set(true);
+  wait(0.05,sec);
+  cos_move_distance_smooth(43, 0, 10, 10);
+  intake.spin(reverse, 10, volt);
+  wait(0.05,sec);
+  intakedown.spin(reverse, 10, volt);
 }
 //--------------------------------------------------------
 void B_left()

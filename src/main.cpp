@@ -64,12 +64,18 @@ Drive chassis(
 static inline double clampd(double v, double lo, double hi){ return v<lo?lo:(v>hi?hi:v); }
 static inline double sgn(double x){ return (x>=0)?1.0:-1.0; }
 static inline double wrap180(double a){ while(a>180)a-=360; while(a<-180)a+=360; return a; }
-constexpr double PI = 3.14159265358979323846;
+static const double PI = 3.14159265358979323846;
 
 // 依你目前的輪徑/齒比（Drive 設 3.75, 0.66666）
-constexpr double WHEEL_DIAM_IN  = 3.75;
-constexpr double EXT_GEAR_RATIO = 0.66666;
-constexpr double WHEEL_CIRC_IN  = PI * WHEEL_DIAM_IN;
+static const double WHEEL_DIAM_IN  = 3.25;
+static const double EXT_GEAR_RATIO = 0.75;
+static const double WHEEL_CIRC_IN  = PI * WHEEL_DIAM_IN;
+
+static double deg_to_inches(double posDeg){
+    double rotations = posDeg / 360.0;
+    double distanceInches = rotations * (WHEEL_CIRC_IN * EXT_GEAR_RATIO);
+    return distanceInches;
+}
 
 static double get_avg_inches(){
   double l_deg = std::fabs(L1.position(vex::deg));
@@ -148,6 +154,13 @@ void cos_move_distance_smooth(double distance_in, double angle_deg, double turn_
     double rightV = clampd(v - turnV + trimV, -Vmax, Vmax);
     set_drive_volt(leftV, rightV);
 
+    Controller1.Screen.setCursor(1, 1);
+    Controller1.Screen.print("current travel: %.2f in", s);
+    Controller1.Screen.setCursor(2, 1);
+    Controller1.Screen.print("target travel: %.2f in", D);
+    Controller1.Screen.setCursor(3, 1);
+    Controller1.Screen.print("H: %.2f", Inertial.heading());
+
     double ds = std::fabs(s - last_s);
     if ((D - s) <= settle_in && ds < 0.02) {
       settle_timer += dt_ms;
@@ -165,7 +178,7 @@ void cos_move_distance_smooth(double distance_in, double angle_deg, double turn_
   R1.stop(); R2.stop(); R3.stop();
 }
 
-int current_auton_selection = 0;
+int current_auton_selection = 5;
 bool auto_started = false;
 int air = 0;
 int temp = 0;
@@ -338,8 +351,8 @@ static inline DashTab drawTabs(DashTab current, const char* autonText) {
 
 // ========= 你的馬達清單 =========
 extern motor L1,L2,L3,R1,R2,R3,intake,intakedown,hang1;
-static motor* kMotors[] = { &L1,&L2,&L3,&R1,&R2,&R3,&intake,&intakedown,&hang1 };
-static const char* kMotorNames[] = { "L1","L2","L3","R1","R2","R3","INTK","IDWN","HANG" };
+static motor* kMotors[] = { &L1,&R1,&L2,&R2,&L3,&L3,&intake,&intakedown,&hang1 };
+static const char* kMotorNames[] = { "L1","R1","L2","R2","L3","R3","INTK","IDWN","HANG" };
 static const int kMotorCount = sizeof(kMotors)/sizeof(kMotors[0]);
 
 // ========= Dashboard（雙分頁：Inputs / Motors） =========
@@ -498,8 +511,9 @@ static inline void show_status_page(int selectedAuton) {
 
         const char* name = (i < (int)(sizeof(kMotorNames)/sizeof(kMotorNames[0]))) ? kMotorNames[i] : "M?";
         double posDeg = 0.0;
-        if (kMotors[i]) posDeg = kMotors[i]->position(degrees);
-
+        if (kMotors[i]) {
+            posDeg = deg_to_inches(kMotors[i]->position(degrees));
+        }
         Brain.Screen.setPenColor(fg);
         Brain.Screen.setFillColor(bg);
         Brain.Screen.printAt(colX, rowY, /*bOpaque=*/true, "%-6s %8.1f", name, posDeg);
@@ -633,6 +647,7 @@ void pre_auton(void)
 
 void autonomous(void)
 {
+  
   auto_started = true;
   ran_auton = true;
   // 根據選擇的自動任務來決定隊伍顏色
