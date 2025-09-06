@@ -216,31 +216,6 @@ void hang() // 預留吊掛
   pushCylinder = !pushCylinder;
   intake.stop(brake);
 }
-extern brain Brain;
-// VEXcode devices
-extern motor L1;
-extern motor L2;
-extern motor L3;
-extern motor R1;
-extern motor R2;
-extern motor R3;
-extern optical Optical;
-extern optical Optical_go;
-extern inertial Inertial;
-extern controller Controller1;
-extern motor intake;
-extern motor intakedown;
-extern motor hang1;
-extern digital_out redlight;
-extern digital_out whitelight;
-extern digital_out intakeCylander;
-extern digital_out pushCylinder;
-extern digital_out shooter;
-extern digital_out aligner;
-extern vex::vision Vision1;
-extern vex::vision Vision2;
-
-void vexcodeInit(void);
 
 struct Rect { int x, y, w, h; };
 
@@ -368,6 +343,7 @@ static const char* kMotorNames[] = { "L1","L2","L3","R1","R2","R3","INTK","IDWN"
 static const int kMotorCount = sizeof(kMotors)/sizeof(kMotors[0]);
 
 // ========= Dashboard（雙分頁：Inputs / Motors） =========
+// ========= Dashboard（雙分頁：Inputs / Motors） =========
 static inline void show_status_page(int selectedAuton) {
   while (Brain.Screen.pressing()) wait(10, msec);
 
@@ -375,7 +351,9 @@ static inline void show_status_page(int selectedAuton) {
     "R_right","R_left","R_right_F","R_left_F","R_solo",
     "B_right","B_left","B_right_F","B_left_F","B_solo"
   };
+
   DashTab tab = TAB_INPUTS;
+  DashTab prevTab = TAB_INPUTS;
   Brain.Screen.setFont(vex::fontType::mono12);
 
   // 版面參數
@@ -383,20 +361,54 @@ static inline void show_status_page(int selectedAuton) {
   const int  TAB_H   = 22;
   const Rect content = { MARGIN, TAB_H + MARGIN, 480 - 2*MARGIN, 240 - (TAB_H + 2*MARGIN) };
 
+  // 各分頁初始化旗標（只在剛切入該分頁時做一次）
+  bool inputsInit = false;
+  bool motorsInit = false;
+
+  // 先鋪一次全局底色
+  fillRect({0,0,480,240}, vex::color(18,18,18));
+
   while (true) {
-    fillRect({0,0,480,240}, vex::color(18,18,18));
-    // 分頁列（右側顯示 Auton，不遮內容）
+    // 先畫分頁列（不清整頁，避免把 LOGO 擦掉）
     tab = drawTabs(tab, labels[selectedAuton]);
+
+    // 分頁切換：只清「內容區」並重置 init
+    if (tab != prevTab) {
+      fillRect(content, vex::color(18,18,18));
+      strokeRect(content, vex::color(60,60,60));
+      if (tab == TAB_INPUTS)  inputsInit = false;
+      if (tab == TAB_MOTORS)  motorsInit = false;
+      prevTab = tab;
+    }
 
     if (tab == TAB_INPUTS) {
       // ===== Inputs 頁 =====
-      // 左：Axis 四條（標籤 36px、條 55%）
-      int labelW = 36;
-      int barW   = (int)(content.w * 0.55);
-      int barH   = 20;
-      int gapY   = 8;
-      int axLeft = content.x;
-      int axTop  = content.y;
+      // 第一次進來：畫 LOGO（之後不再從 SD 讀，避免閃爍）
+      if (!inputsInit) {
+        const int barH = 20;
+        const int gapY = 8;
+        const int axTop = content.y;
+
+        // A4 條下面顯示 LOGO.bmp（240x240）
+        const int imgX = 35;                                        // 你要的 X
+        const int imgY = axTop + 3*(barH+gapY) + barH + 10;         // A4 底下 10px
+
+        if (Brain.SDcard.isInserted() && Brain.SDcard.exists("LOGO.bmp")) {
+          Brain.Screen.drawImageFromFile("LOGO.bmp", imgX, imgY);
+        } else {
+          Brain.Screen.setPenColor(vex::color(200,200,200));
+          Brain.Screen.printAt(imgX, imgY + 20, false, "LOGO.bmp not found");
+        }
+        inputsInit = true;
+      }
+
+      // —— 每幀只更新動態元件（不清整頁、也不重畫 LOGO） ——
+      const int labelW = 36;
+      const int barW   = (int)(content.w * 0.55);
+      const int barH   = 20;
+      const int gapY   = 8;
+      const int axLeft = content.x;
+      const int axTop  = content.y;
 
       int a1 = Controller1.Axis1.position();
       int a2 = Controller1.Axis2.position();
@@ -412,12 +424,12 @@ static inline void show_status_page(int selectedAuton) {
       drawAxisBarLabeled("A4", a4, {axLeft,             axTop + 3*(barH+gapY), labelW, barH},
                                 {axLeft+labelW+6,       axTop + 3*(barH+gapY), barW,   barH});
 
-      // 右上：指南針（80×80 小卡）
+      // 右上小指南針
       Rect compass = { content.x + content.w - 90, axTop, 80, 80 };
       drawCompass(compass, Inertial.heading(degrees));
 
-      // 右側：按鍵 3×4 小矩陣
-      int gridX = content.x + content.w - (3*70 + 2*6); // 每格寬 70、間距 6
+      // 右側：按鍵 3×4
+      int gridX = content.x + content.w - (3*70 + 2*6);
       int gridY = compass.y + compass.h + 6;
       int bw    = 70, bh = 20, sp = 6;
 
@@ -436,64 +448,110 @@ static inline void show_status_page(int selectedAuton) {
       drawButtonBox("Down", Controller1.ButtonDown.pressing(), {gridX + 0*(bw+sp), gridY + 3*(bh+sp), bw, bh});
       drawButtonBox("Left", Controller1.ButtonLeft.pressing(), {gridX + 1*(bw+sp), gridY + 3*(bh+sp), bw, bh});
       drawButtonBox("Right",Controller1.ButtonRight.pressing(),{gridX + 2*(bw+sp), gridY + 3*(bh+sp), bw, bh});
-
-      // 最底：氣動 ON/OFF（6 顆）
-      int pneuY = content.y + content.h - 20;   // 最底一行
+    
+      // 底部：氣動狀態
+      int pneuY = content.y + content.h - 20;
       int pneuW = 68, pneuH = 18, pneuSP = 6;
       int pneuX = content.x;
 
-      drawPneuBox("no status",  redlight.value(),       {pneuX + 0*(pneuW+pneuSP), pneuY, pneuW, pneuH});
-      drawPneuBox("no status",  whitelight.value(),     {pneuX + 1*(pneuW+pneuSP), pneuY, pneuW, pneuH});
-      drawPneuBox("INTK",   intakeCylander.value(), {pneuX + 2*(pneuW+pneuSP), pneuY, pneuW, pneuH});
-      drawPneuBox("PUSH",   pushCylinder.value(),   {pneuX + 3*(pneuW+pneuSP), pneuY, pneuW, pneuH});
-      drawPneuBox("SHOT",   shooter.value(),        {pneuX + 4*(pneuW+pneuSP), pneuY, pneuW, pneuH});
-      drawPneuBox("ALIGN",  aligner.value(),        {pneuX + 5*(pneuW+pneuSP), pneuY, pneuW, pneuH});
+      drawPneuBox("no status", redlight.value(),       {pneuX + 0*(pneuW+pneuSP), pneuY, pneuW, pneuH});
+      drawPneuBox("no status", whitelight.value(),     {pneuX + 1*(pneuW+pneuSP), pneuY, pneuW, pneuH});
+      drawPneuBox("INTK",      intakeCylander.value(), {pneuX + 2*(pneuW+pneuSP), pneuY, pneuW, pneuH});
+      drawPneuBox("PUSH",      pushCylinder.value(),   {pneuX + 3*(pneuW+pneuSP), pneuY, pneuW, pneuH});
+      drawPneuBox("SHOT",      shooter.value(),        {pneuX + 4*(pneuW+pneuSP), pneuY, pneuW, pneuH});
+      drawPneuBox("ALIGN",     aligner.value(),        {pneuX + 5*(pneuW+pneuSP), pneuY, pneuW, pneuH});
+    }
+    else {
+      // ===== Motors 頁（放大字體 + 逐行清除避免陰影） =====
+      if (!motorsInit) {
+        // 清內容區一次、畫框與標題
+        fillRect(content, vex::color(18,18,18));
+        strokeRect({content.x, content.y, content.w, content.h - 2}, vex::color(90,90,90));
+        Brain.Screen.setPenColor(vex::color(200,200,200));
+        Brain.Screen.setFont(vex::fontType::mono20);    // 放大字體
+        // 標題往下擺，避免貼到 tabs
+        Brain.Screen.printAt(content.x, content.y + 4, "Motor position (deg)");
+        motorsInit = true;
+      }
 
-    } else {
-      // ===== Motors 頁 =====
-      Rect table = { content.x, content.y, content.w, content.h - 2 };
-      strokeRect(table, vex::color(90,90,90));
-      Brain.Screen.setPenColor(vex::color(200,200,200));
-      Brain.Screen.printAt(table.x, table.y - 2, "Motor position (deg)");
+      // 版面配置（兩欄）
+      const int colW = (content.w - 16) / 2;
+      const int c1x  = content.x + 8;
+      const int c2x  = content.x + 8 + colW;
 
-      const int colW = (table.w - 16) / 2; // 兩欄
-      const int c1x  = table.x + 8;
-      const int c2x  = table.x + 8 + colW;
-      const int rowH = 16;
-      int rowTop = table.y + 10;
+      // 行高比字高大些，整體下移
+      const int rowH = 26;                 // 搭配 mono20
+      int rowTop = content.y + 28;         // ★ 往下移，避免貼到標題與 tabs
 
+      // 顏色
+      vex::color bg = vex::color(18,18,18);
+      vex::color fg = vex::white;
+
+      // 逐行更新：先清該行，再用不透明文字印上，避免陰影
       for (int i = 0; i < kMotorCount; ++i) {
         int colX = (i % 2 == 0) ? c1x : c2x;
         int rowY = rowTop + (i / 2) * rowH;
+
+        // 清這一行的小區塊（不影響其它區域）
+        Rect rline = { colX, rowY - 18, colW - 8, rowH };
+        fillRect(rline, bg);
 
         const char* name = (i < (int)(sizeof(kMotorNames)/sizeof(kMotorNames[0]))) ? kMotorNames[i] : "M?";
         double posDeg = 0.0;
         if (kMotors[i]) posDeg = kMotors[i]->position(degrees);
 
-        Brain.Screen.setPenColor(vex::white);
-        Brain.Screen.printAt(colX, rowY, false, "%-6s %8.1f", name, posDeg);
+        Brain.Screen.setPenColor(fg);
+        Brain.Screen.setFillColor(bg);
+        Brain.Screen.printAt(colX, rowY, /*bOpaque=*/true, "%-6s %8.1f", name, posDeg);
       }
     }
 
     // 觸控返回（點 tabs 區域只切換，不返回）
     if (Brain.Screen.pressing()) {
-      int tx = Brain.Screen.xPosition(), ty = Brain.Screen.yPosition();
+      int ty = Brain.Screen.yPosition();
       if (!(ty >= 0 && ty <= TAB_H)) {
         while (Brain.Screen.pressing()) wait(10, msec);
-        break;
+        break;   // 回到 pre_auton 的選單頁
       }
     }
 
-    wait(80, msec);
+    wait(100, msec);
   }
 }
-// ======================== 第一頁（選擇自走） =========================
+
+// ======================== 第一頁（選擇auto） =========================
 void pre_auton(void)
 {
+  
   vexcodeInit();
   default_constants();
 
+/*// ===== SD 卡測試 =====
+  Brain.Screen.clearScreen();
+  Brain.Screen.setFont(vex::fontType::mono12);
+  Brain.Screen.setPenColor(vex::white);
+
+  if (Brain.SDcard.isInserted()) {
+    Brain.Screen.printAt(10, 20, false, "SD card detected.");
+
+    if (Brain.SDcard.exists("field.bmp")) {
+      Brain.Screen.printAt(10, 40, false, "Loading field.bmp ...");
+      bool ok = Brain.Screen.drawImageFromFile("field.bmp", 0, 0);
+      if (ok) {
+        Brain.Screen.printAt(10, 60, false, "Image loaded OK.");
+      } else {
+        Brain.Screen.printAt(10, 60, false, "Image load failed.");
+      }
+    } else {
+      Brain.Screen.printAt(10, 40, false, "field.bmp not found.");
+    }
+  } else {
+    Brain.Screen.printAt(10, 20, false, "No SD card detected.");
+  }
+  wait(10,sec);
+  */// =======================================================================
   Inertial.calibrate();
+
   while (Inertial.isCalibrating()) {
     whitelight = 0;
   }
@@ -545,6 +603,7 @@ void pre_auton(void)
 
         Rect r { x, y, col_width, h };
         drawCenteredText(r, labels[i], textColor);
+        
       }
     }
 
@@ -558,8 +617,10 @@ void pre_auton(void)
 
       if (col >= 0 && col < cols && (row == 0 || row == 1)) {
         current_auton_selection = col + row * cols;
+        
 
         // 進入第二頁（Dashboard）
+        
         show_status_page(current_auton_selection);
       }
 
