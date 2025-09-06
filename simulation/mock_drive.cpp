@@ -21,27 +21,65 @@ void cos_move_distance_smooth(double distance_in, double angle_deg, double turn_
     while (heading_error > 180.0) heading_error -= 360.0;
     while (heading_error < -180.0) heading_error += 360.0;
     
-    // Simulate turning to correct heading first
+    // Simulate turning to correct heading incrementally
     if (std::abs(heading_error) > 5.0) {
-        // Calculate differential wheel distances for turning
         const double wheelbase = 12.0; // inches between wheels
-        double turn_arc_length = std::abs(heading_error) * M_PI / 180.0 * (wheelbase / 2.0);
+        const double turn_step = 5.0; // degrees per step
+        const double turn_time_per_step = 50; // ms per 5-degree turn
         
-        if (heading_error > 0) {
-            // Turning left: right wheel travels more
-            sim.getState().left_distance += turn_arc_length * 0.5;
-            sim.getState().right_distance += turn_arc_length * 1.5;
-        } else {
-            // Turning right: left wheel travels more  
-            sim.getState().left_distance += turn_arc_length * 1.5;
-            sim.getState().right_distance += turn_arc_length * 0.5;
+        double remaining_turn = std::abs(heading_error);
+        double turn_direction = (heading_error > 0) ? 1.0 : -1.0;
+        
+        std::cout << "[" << sim.getTime() << "ms] Starting turn from " 
+                  << current_heading << "° to " << angle_deg << "° (" 
+                  << heading_error << "° turn)" << std::endl;
+        
+        while (remaining_turn > 1.0) {
+            double step_turn = std::min(turn_step, remaining_turn);
+            
+            // Update heading incrementally
+            sim.getState().heading += turn_direction * step_turn;
+            
+            // Normalize to 0-359 degrees
+            while (sim.getState().heading >= 360.0) sim.getState().heading -= 360.0;
+            while (sim.getState().heading < 0.0) sim.getState().heading += 360.0;
+            
+            // Calculate differential wheel distances for this turn step
+            double step_arc_length = step_turn * M_PI / 180.0 * (wheelbase / 2.0);
+            
+            if (turn_direction > 0) {
+                // Turning left: right wheel travels more
+                sim.getState().left_distance += step_arc_length * 0.5;
+                sim.getState().right_distance += step_arc_length * 1.5;
+            } else {
+                // Turning right: left wheel travels more  
+                sim.getState().left_distance += step_arc_length * 1.5;
+                sim.getState().right_distance += step_arc_length * 0.5;
+            }
+            
+            // Advance time
+            sim.step(turn_time_per_step);
+            
+            remaining_turn -= step_turn;
+            
+            std::cout << "[" << sim.getTime() << "ms] Turn step: " 
+                      << sim.getState().heading << "°, remaining: " 
+                      << remaining_turn << "°" << std::endl;
+            
+            // Record snapshot during turn (if recorder is active)
+            extern StateRecorder* g_active_recorder;
+            if (g_active_recorder) {
+                g_active_recorder->recordSnapshot();
+            }
         }
         
+        // Final adjustment to exact target
         sim.getState().heading = angle_deg;
-        // Normalize to 0-359 degrees
         while (sim.getState().heading >= 360.0) sim.getState().heading -= 360.0;
         while (sim.getState().heading < 0.0) sim.getState().heading += 360.0;
-        sim.step(std::abs(heading_error) * 10); // 10ms per degree of turn
+        
+        std::cout << "[" << sim.getTime() << "ms] Turn complete: " 
+                  << sim.getState().heading << "°" << std::endl;
     }
     
     // Simulate forward movement incrementally (convert clock heading to math coordinates)
