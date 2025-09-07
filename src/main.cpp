@@ -738,25 +738,25 @@ int intakeControlTask()
     {
       // L1：只動 intakedown 反轉
       intake.stop(coast);
-      intakedown.spin(reverse, 12, volt);
+      intakedown.spin(forward, 12, volt);
     }
     else if (Controller1.ButtonL2.pressing())
     {
       // L2：只動 intakedown 正轉
       intake.stop(coast);
-      intakedown.spin(forward, 12, volt);
+      intakedown.spin(reverse, 12, volt);
     }
     else if (Controller1.ButtonR1.pressing())
     {
       // 原本功能保留：R1
       intake.spin(forward, 12, volt);
-      intakedown.spin(reverse, 12, volt);
+      intakedown.spin(forward, 12, volt);
     }
     else if (Controller1.ButtonR2.pressing())
     {
       // 原本功能保留：R2
       intake.spin(forward, 12, volt);
-      intakedown.spin(reverse, 12, volt);  
+      intakedown.spin(forward, 12, volt);  
     }
     else
     {
