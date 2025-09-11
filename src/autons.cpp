@@ -3,6 +3,9 @@
 #include "autoarm.h"
 void cos_move_distance_smooth(double distance_in, double angle_deg, double turn_maxV, double drive_maxV);
 
+bool downTaskForward = true;  // true = forward, false = reverse
+bool upTaskForward   = true;  // true = forward, false = reverse
+
 void driveTime(int ms)
 {
   chassis.drive_with_voltage(12, 12);
@@ -10,6 +13,23 @@ void driveTime(int ms)
   chassis.DriveL.stop(brake);
   chassis.DriveR.stop(brake);
 }
+
+int DownTask() {
+  while (true) {
+    intakedown.spin(downTaskForward ? forward : reverse, 12, volt);
+    wait(50, msec);
+  }
+  return 0;
+}
+
+int UpTask() {
+  while (true) {
+    intake.spin(upTaskForward ? forward : reverse, 12, volt);
+    wait(50, msec);
+  }
+  return 0;
+}
+
 
 int info()
 {
@@ -75,37 +95,58 @@ void B_right()
 
   chassis.set_drive_constants(12, 2.0, 0.005, 2, 10);
   chassis.set_heading_constants(12, 1.5, 0.005, 2, 10);
-  intakedown.spin(forward, 10, volt);
+  //intakedown.spin(forward, 12, volt);
+
+  downTaskForward=true;
+  task DintakeTask1(DownTask);
   wait(0.05,sec);
-  cos_move_distance_smooth(20, 16, 10, 8);
-  wait(1.5,sec);
-  cos_move_distance_smooth(17, 305, 8, 6);
-  wait(0.05,sec);
-  intake.spin(reverse, 10, volt);
-  wait(0.05,sec);
-  intakedown.spin(forward, 10, volt);
-  wait(2,sec);
-  intakedown.stop();
-  wait(0.05,sec);
-  intake.stop();
+  shooter.set(true);
+  cos_move_distance_smooth(13, 60, 10, 10); 
   wait(0.05,sec);
   chassis.turn_to_angle(310);
+  cos_move_distance_smooth(23, 315, 6, 6);//intake 3 balls
+  wait(1,sec);
+  DintakeTask1.stop();  
   wait(0.05,sec);
-  cos_move_distance_smooth(-10, 310, 10, 10);
+
+  cos_move_distance_smooth(10, 315, 8, 6);//low goal
   wait(0.05,sec);
-  intake.spin(forward, 10, volt);
+
+  //intake.spin(reverse, 10, volt);
+
+  upTaskForward=false;
+  task UintakeTask1(UpTask);
+
   wait(0.05,sec);
-  intakedown.spin(reverse, 10, volt);
+  //intakedown.spin(reverse, 10, volt);
+
+  downTaskForward=false;
+  task DintakeTask2(DownTask);
+
+  wait(1.5,sec);
+
+  UintakeTask1.stop();
+  DintakeTask2.stop();
+
+  wait(0.05,sec);
+  cos_move_distance_smooth(-10, 300, 10, 10);
+  wait(0.05,sec);
+  //intakedown.spin(forward, 10, volt);
+
+  downTaskForward=true;
+  task DintakeTask3(DownTask);
+
   chassis.turn_to_angle(140);
-  cos_move_distance_smooth(31, 140, 10, 10);
+  cos_move_distance_smooth(20, 140, 10, 10);
   wait(0.05,sec);
   chassis.turn_to_angle(180);
   wait(0.05,sec);
-  intakeCylander.set(true);
-  wait(0.05,sec);
-  chassis.drive_distance(10, 180, 10, 10);
+  chassis.drive_distance(18, 180, 10, 10);/*
   wait(0.05,sec);
   intakeCylander.set(true);
+  wait(0.05,sec);
+  chassis.drive_distance(7, 180, 12, 12);
+  wait(0.05,sec);
   chassis.drive_distance(-2, 180, 10, 10);
   wait(0.05,sec);
   chassis.drive_distance(5, 180, 10, 10);
@@ -122,7 +163,7 @@ void B_right()
   cos_move_distance_smooth(10, 0, 10, 10);
   intake.spin(reverse, 10, volt);
   wait(0.05,sec);
-  intakedown.spin(forward, 10, volt);
+  intakedown.spin(forward, 10, volt);*/
 }
 //--------------------------------------------------------
 void B_left()
