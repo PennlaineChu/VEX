@@ -178,7 +178,7 @@ void cos_move_distance_smooth(double distance_in, double angle_deg, double turn_
   R1.stop(); R2.stop(); R3.stop();
 }
 
-int current_auton_selection = 5;
+int current_auton_selection = 6;
 bool auto_started = false;
 int air = 0;
 int temp = 0;
