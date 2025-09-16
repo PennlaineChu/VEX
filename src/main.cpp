@@ -799,7 +799,7 @@ void usercontrol(void)
   Controller1.ButtonR1.pressed(shooterOn);
   Controller1.ButtonR1.pressed(alignerON);
   Controller1.ButtonR1.released(shooterOff);
-  Controller1.ButtonR1.released(alignerOFF);
+  Controller1.ButtonR1.released(alignerON);
   while (1)
   {
     chassis.control_tank(100); // 底盤控制
