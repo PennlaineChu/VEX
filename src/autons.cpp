@@ -22,7 +22,7 @@ int info()
   while (1)
   {
     Brain.Screen.clearScreen();
-    Brain.Screen.printAt(0, 50, "X: %f", chassis.get_X_position());
+    Brain.Screen.printAt(0, 50, "X: %f", chassis.get_X_position()); 
     Brain.Screen.printAt(0, 70, "Y: %f", chassis.get_Y_position());
     Brain.Screen.printAt(0, 90, "Heading: %f", chassis.get_absolute_heading());
     Brain.Screen.printAt(0, 110, "ForwardTracker: %f", chassis.get_ForwardTracker_position());
@@ -164,7 +164,6 @@ void R_left()
   wait(0.05,sec);
   intakedown.spin(forward, 10, volt);
 }
-}
 
 //--------------------------------------------------------
 
@@ -284,22 +283,17 @@ void B_left()
   wait(0.05,sec);
   chassis.turn_to_angle(230); // mirrored angle
   wait(0.05,sec);
-  cos_move_distance_smooth(15.5, 230, 10, 10);//to the loader
+  cos_move_distance_smooth(13, 230, 10, 10);//to the loader
   wait(0.05,sec);
   chassis.turn_to_angle(180);
   wait(0.05,sec);
-  cos_move_distance_smooth(7, 180, 10, 10);//into loader not sure!!!
+  cos_move_distance_smooth(6, 180, 10, 10);//into loader not sure!!!
   wait(0.05,sec);
   intakeCylander.set(true);
   wait(0.05,sec);
-  chassis.drive_distance(8.5, 180, 12, 12);
-  wait(0.05,sec);
-  chassis.drive_distance(-2, 180, 10, 10);
-  wait(0.05,sec);
-  intake.spin(forward, 12, volt);
-  wait(0.05,sec);
-  chassis.drive_distance(4.5, 180, 10, 10);
-  wait(0.05,sec);
+  chassis.DriveL.spin(forward, 12, volt);
+  chassis.DriveR.spin(forward, 12, volt);
+  wait(1.5,sec);
   intake.stop();
   wait(1.5,sec);
   cos_move_distance_smooth(-7, 180, 10, 10);
@@ -319,6 +313,22 @@ void B_left()
   wait(0.05,sec);
   intakedown.spin(forward, 10, volt);
 }
+/*
+void practice()
+{
+  vex::color selectedTeamColor = vex::color::blue;
+  
+  cos_move_distance_smooth(10, 0, 10, 10); 
+  chassis.turn_to_angle(90); // mirrored angle
+  cos_move_distance_smooth(10, 0, 10, 10); 
+  chassis.turn_to_angle(90); // mirrored angle
+  cos_move_distance_smooth(10, 0, 10, 10); 
+  chassis.turn_to_angle(90); // mirrored angle
+  cos_move_distance_smooth(10, 0, 10, 10);
+
+  
+}*/
+
 //--------------------------------------------------------
 void B_right_final()
 {

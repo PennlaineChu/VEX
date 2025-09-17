@@ -755,7 +755,7 @@ int intakeControlTask()
     else if (Controller1.ButtonR2.pressing())
     {
       // 原本功能保留：R2
-      intake.spin(forward, 12, volt);
+      intake.spin(reverse, 12, volt);
       intakedown.spin(forward, 12, volt);  
     }
     else
@@ -799,7 +799,7 @@ void usercontrol(void)
   Controller1.ButtonR1.pressed(shooterOn);
   Controller1.ButtonR1.pressed(alignerON);
   Controller1.ButtonR1.released(shooterOff);
-  Controller1.ButtonR1.released(alignerON);
+  Controller1.ButtonR1.released(alignerOFF);
   while (1)
   {
     chassis.control_tank(100); // 底盤控制
