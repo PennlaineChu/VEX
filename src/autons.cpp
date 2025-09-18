@@ -269,47 +269,49 @@ void B_left()
   wait(0.05,sec);
   intakedown.spin(forward, 12, volt);
   wait(0.05,sec);
-  chassis.turn_to_angle(46); // mirrored angle
+  chassis.turn_to_angle(45); // mirrored angle
   wait(0.05,sec);
-  cos_move_distance_smooth(15, 46, 6, 6);//intake 3 balls
+  cos_move_distance_smooth(15, 45, 6, 6);//intake 3 balls
   wait(0.8,sec);
-  cos_move_distance_smooth(13.8, 47, 8, 6);//middle goals
+  cos_move_distance_smooth(11.5, 45, 8, 6);//middle goals
   wait(0.05,sec);
   intake.spin(forward, 12, volt);
   wait(1.5,sec);
   intake.stop();
   wait(0.05,sec);
-  cos_move_distance_smooth(-10, 46, 10, 10);//backback (mirrored)
+  cos_move_distance_smooth(-10, 45, 10, 10);//backback (mirrored)
   wait(0.05,sec);
   chassis.turn_to_angle(230); // mirrored angle
   wait(0.05,sec);
-  cos_move_distance_smooth(13, 230, 10, 10);//to the loader
+  cos_move_distance_smooth(27, 230, 10, 10);//to the loader
   wait(0.05,sec);
   chassis.turn_to_angle(180);
+  intakedown.stop();
   wait(0.05,sec);
-  cos_move_distance_smooth(6, 180, 10, 10);//into loader not sure!!!
-  wait(0.05,sec);
+  intakedown.spin(reverse, 12, volt);
   intakeCylander.set(true);
+  intakedown.stop();
   wait(0.05,sec);
+  intakedown.spin(forward, 12, volt);
   chassis.DriveL.spin(forward, 12, volt);
   chassis.DriveR.spin(forward, 12, volt);
   wait(1.5,sec);
-  intake.stop();
-  wait(1.5,sec);
   cos_move_distance_smooth(-7, 180, 10, 10);
+  intakedown.stop();
   intakeCylander.set(false);
   aligner.set(true);
   shooter.set(true);
-  chassis.turn_to_angle(355); // to long goal
+  chassis.turn_to_angle(0); // to long goal
   wait(0.05,sec);
-  chassis.drive_distance(8, 355, 10, 10);
+  chassis.drive_distance(8, 0, 10, 10);
   wait(0.05,sec);
   shooter.set(true);
-  intake.stop();
+  //intake.stop();
   wait(0.05,sec);
   cos_move_distance_smooth(10, 0, 10, 10);
   wait(0.05,sec);
-  intake.spin(forward, 10, volt);
+  intake.spin(forward, 12, volt);
+  intakedown.spin(forward, 10, volt);
   wait(0.05,sec);
   intakedown.spin(forward, 10, volt);
 }

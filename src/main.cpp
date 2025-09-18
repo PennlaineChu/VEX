@@ -154,12 +154,12 @@ void cos_move_distance_smooth(double distance_in, double angle_deg, double turn_
     double rightV = clampd(v - turnV + trimV, -Vmax, Vmax);
     set_drive_volt(leftV, rightV);
 
-    Controller1.Screen.setCursor(1, 1);
+    /*Controller1.Screen.setCursor(1, 1);
     Controller1.Screen.print("current travel: %.2f in", s);
     Controller1.Screen.setCursor(2, 1);
     Controller1.Screen.print("target travel: %.2f in", D);
     Controller1.Screen.setCursor(3, 1);
-    Controller1.Screen.print("H: %.2f", Inertial.heading());
+    Controller1.Screen.print("H: %.2f", Inertial.heading());*/
 
     double ds = std::fabs(s - last_s);
     if ((D - s) <= settle_in && ds < 0.02) {
@@ -755,7 +755,7 @@ int intakeControlTask()
     else if (Controller1.ButtonR2.pressing())
     {
       // 原本功能保留：R2
-      intake.spin(reverse, 12, volt);
+      intake.spin(forward, 12, volt);
       intakedown.spin(forward, 12, volt);  
     }
     else
