@@ -755,7 +755,7 @@ int intakeControlTask()
     else if (Controller1.ButtonR2.pressing())
     {
       // 原本功能保留：R2
-      intake.spin(reverse, 12, volt);
+      intake.spin(forward, 12, volt);
       intakedown.spin(forward, 12, volt);  
     }
     else
