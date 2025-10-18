@@ -41,49 +41,63 @@ void R_right()
   chassis.set_heading_constants(12, 1.5, 0.005, 2, 10);
 
   //shooter.set(true);
-  cos_move_distance_smooth(14.5, 70, 10, 10); // mirrored for right
+  cos_move_distance_smooth(16.5, 60, 6, 6); 
   wait(0.05,sec);
   intakedown.spin(forward, 12, volt);
   wait(0.05,sec);
-  chassis.turn_to_angle(316); // mirrored for right
+  chassis.turn_to_angle(315);
   wait(0.05,sec);
-  cos_move_distance_smooth(15, 316, 6, 6);//intake 3 balls
-  wait(0.8,sec);
-  cos_move_distance_smooth(11, 316, 8, 8);//middle goals
+  cos_move_distance_smooth(15, 315, 6, 6);//intake 3 balls
+  wait(1,sec);
+  intakedown.stop();
+  cos_move_distance_smooth(10, 315, 8, 6);//low goals
   wait(0.05,sec);
+
   intake.spin(reverse, 12, volt);
+  wait(0.05,sec);
+  intakedown.spin(reverse, 12, volt);
   wait(1.5,sec);
-  intake.stop();
+  //intake.stop();
   wait(0.05,sec);
-  cos_move_distance_smooth(-10, 316, 10, 10);//backback (mirrored)
+  intakedown.stop();
+
   wait(0.05,sec);
-  chassis.turn_to_angle(130); // mirrored for right
+  cos_move_distance_smooth(-10, 315, 6, 6);//backback
   wait(0.05,sec);
-  cos_move_distance_smooth(25, 130, 10, 10);//to the loader
+  //intakedown.spin(forward, 10, volt);
+
+  intakedown.spin(forward, 12, volt);
+  wait(0.05,sec);
+  chassis.turn_to_angle(140);
+  wait(0.05,sec);
+  cos_move_distance_smooth(16, 145, 6, 6);//to the loader
   wait(0.05,sec);
   chassis.turn_to_angle(180);
   wait(0.05,sec);
+  cos_move_distance_smooth(4.5, 180, 6, 6);//into loader not sure!!!
+  wait(0.05,sec);
   intakeCylander.set(true);
   wait(0.05,sec);
-  intakedown.spin(forward, 12, volt);
-  chassis.DriveL.spin(forward, 12, volt);
-  chassis.DriveR.spin(forward, 12, volt);
+  chassis.drive_distance(7, 180, 12, 12);
+  wait(0.05,sec);
+  chassis.drive_distance(-2, 180, 6, 6);
+  wait(0.05,sec);
+  chassis.drive_distance(4, 180, 6, 6);
   wait(1.5,sec);
-  cos_move_distance_smooth(-7, 180, 10, 10);
-  intakedown.stop();
+  cos_move_distance_smooth(-5, 180, 6, 6);
   intakeCylander.set(false);
   aligner.set(true);
   shooter.set(true);
-  chassis.turn_to_angle(357); // to long goal (mirrored)
+  chassis.turn_to_angle(10);
   wait(0.05,sec);
-  chassis.drive_distance(8, 357, 10, 10);
+  chassis.drive_distance(6, 6, 6, 6);
   wait(0.05,sec);
   shooter.set(true);
-  //intake.stop();
+  intake.stop();
   wait(0.05,sec);
-  cos_move_distance_smooth(10, 0, 10, 10);
+  cos_move_distance_smooth(10, 0, 6, 6);
   wait(0.05,sec);
-  intake.spin(forward, 12, volt);
+  intake.spin(reverse, 10, volt);
   wait(0.05,sec);
   intakedown.spin(forward, 10, volt);
 }
@@ -97,52 +111,56 @@ void R_left()
   chassis.set_heading_constants(12, 1.5, 0.005, 2, 10);
 
   //shooter.set(true);
-  cos_move_distance_smooth(14.5, 290, 10, 10); // mirrored angle
+  cos_move_distance_smooth(14.5, 300, 6, 6); // mirrored angle
   wait(0.05,sec);
   intakedown.spin(forward, 12, volt);
   wait(0.05,sec);
-  chassis.turn_to_angle(44); // mirrored angle
+  chassis.turn_to_angle(46); // mirrored angle
   wait(0.05,sec);
-  cos_move_distance_smooth(15, 44, 6, 6);//intake 3 balls
+  cos_move_distance_smooth(15, 45, 6, 6);//intake 3 balls
   wait(0.8,sec);
-  cos_move_distance_smooth(11, 44, 8, 8);//middle goals
+  cos_move_distance_smooth(13.8, 45, 8, 6);//middle goals
   wait(0.05,sec);
   intake.spin(forward, 12, volt);
   wait(1.5,sec);
   intake.stop();
   wait(0.05,sec);
-  cos_move_distance_smooth(-10, 44, 10, 10);//backback (mirrored)
+  cos_move_distance_smooth(-10, 46, 6, 6);//backback (mirrored)
   wait(0.05,sec);
   chassis.turn_to_angle(230); // mirrored angle
   wait(0.05,sec);
-  cos_move_distance_smooth(25, 230, 10, 10);//to the loader
+  cos_move_distance_smooth(15, 230, 6, 6);//to the loader
   wait(0.05,sec);
   chassis.turn_to_angle(180);
-  intakedown.stop();
   wait(0.05,sec);
-  intakedown.spin(reverse, 12, volt);
+  cos_move_distance_smooth(5, 180, 6, 6);//into loader not sure!!!
+  wait(0.05,sec);
   intakeCylander.set(true);
-  intakedown.stop();
   wait(0.05,sec);
-  intakedown.spin(forward, 12, volt);
-  chassis.DriveL.spin(forward, 12, volt);
-  chassis.DriveR.spin(forward, 12, volt);
+  chassis.drive_distance(8.5, 180, 12, 12);
+  wait(0.05,sec);
+  chassis.drive_distance(-2, 180, 6, 6);
+  wait(0.05,sec);
+  intake.spin(forward, 12, volt);
+  wait(0.05,sec);
+  chassis.drive_distance(5.5, 180, 6, 6);
+  wait(0.05,sec);
+  intake.stop();
   wait(1.5,sec);
-  cos_move_distance_smooth(-7, 180, 10, 10);
-  intakedown.stop();
+  cos_move_distance_smooth(-5, 180, 6, 6);
   intakeCylander.set(false);
   aligner.set(true);
   shooter.set(true);
-  chassis.turn_to_angle(3); // to long goal
+  chassis.turn_to_angle(5); // to long goal
   wait(0.05,sec);
-  chassis.drive_distance(8, 3, 10, 10);
+  chassis.drive_distance(10, 5, 6, 6);
   wait(0.05,sec);
   shooter.set(true);
-  //intake.stop();
+  intake.stop();
   wait(0.05,sec);
-  cos_move_distance_smooth(10, 0, 10, 10);
+  cos_move_distance_smooth(10, 0, 6, 6);
   wait(0.05,sec);
-  intake.spin(forward, 12, volt);
+  intake.spin(forward, 10, volt);
   wait(0.05,sec);
   intakedown.spin(forward, 10, volt);
 }
@@ -152,6 +170,23 @@ void R_left()
 void R_right_final()
 {
   vex::color selectedTeamColor = vex::color::red;
+
+  cos_move_distance_smooth(16.5, 60, 6, 6); // mirrored angle
+  wait(0.05,sec);
+  intakedown.spin(forward, 11, volt);
+  wait(0.05,sec);
+  chassis.turn_to_angle(315); // mirrored angle
+  wait(0.05,sec);
+  cos_move_distance_smooth(17, 315, 5, 6);//intake 3 balls
+  wait(0.8,sec);
+  intakedown.spin(forward, 0, volt);
+  cos_move_distance_smooth(12, 315, 8, 6);//middle goals
+  wait(0.05,sec);
+  intakedown.spin(reverse, 8, volt);
+  wait(8,sec);
+  cos_move_distance_smooth(-10, 315, 6, 6);//backback (mirrored)
+
+
 }
 
 //--------------------------------------------------------
@@ -171,59 +206,62 @@ void R_solo()
 
 void B_right()
 {
-  vex::color selectedTeamColor = vex::color::blue;
-
-  chassis.set_drive_constants(12, 2.0, 0.005, 2, 10);
-  chassis.set_heading_constants(12, 1.5, 0.005, 2, 10);
-
-  //shooter.set(true);
-  cos_move_distance_smooth(17.5, 70, 10, 10); 
-  wait(0.05,sec);
-  intakedown.spin(forward, 12, volt);
-  wait(0.05,sec);
-  chassis.turn_to_angle(318); // mirrored angle
-  wait(0.05,sec);
-  cos_move_distance_smooth(15, 318, 6, 6);//intake 3 balls
-  wait(0.4,sec);
-  cos_move_distance_smooth(13, 318, 8, 8);//low goals
-  wait(0.05,sec);
-  intakedown.spin(reverse, 12, volt);
-  wait(2,sec);
-  cos_move_distance_smooth(-10, 318, 10, 10);//backback (mirrored)
-  wait(0.05,sec);
 
 
-  chassis.turn_to_angle(130); // mirrored angle
+  cos_move_distance_smooth(16, 60, 6, 6); // mirrored angle
   wait(0.05,sec);
-  cos_move_distance_smooth(23, 130, 10, 10);//to the loader
+  intakedown.spin(forward, 11, volt);
   wait(0.05,sec);
-  chassis.turn_to_angle(180);
+  chassis.turn_to_angle(315); // mirrored angle
+  wait(0.05,sec);
+  cos_move_distance_smooth(17, 315, 5, 6);//intake 3 balls
+  wait(0.8,sec);
+  cos_move_distance_smooth(11, 315, 8, 6);//middle goals
+  wait(0.05, sec);
   intakedown.stop();
   wait(0.05,sec);
-  intakedown.spin(reverse, 12, volt);
+  intakedown.spin(reverse, 8, volt);
+  wait(3,sec);
+  cos_move_distance_smooth(-10, 315, 6, 6);//backback (mirrored)
+  wait(0.05,sec);
+  chassis.turn_to_angle(132); // mirrored angle
+  wait(0.05,sec);
+  intakedown.stop();
+  wait(0.05,sec);
+  cos_move_distance_smooth(19.5, 135, 6, 6);//to the loader
+  wait(0.05,sec);
+  chassis.turn_to_angle(185);
+  
+  /*
+  wait(0.05,sec);
+  cos_move_distance_smooth(6, 180, 6, 6);//into loader not sure!!!
+  wait(0.05,sec);
+  */
   intakeCylander.set(true);
-  intakedown.stop();
+  intakedown.spin(forward,10,volt);
   wait(0.05,sec);
-  intakedown.spin(forward, 12, volt);
-  chassis.DriveL.spin(forward, 10, volt);
-  chassis.DriveR.spin(forward, 10, volt);
-  wait(1.5,sec);
-  cos_move_distance_smooth(-7, 180, 10, 10);
-  intakedown.stop();
+  chassis.DriveL.spin(forward, 7, volt);
+  chassis.DriveR.spin(forward, 7, volt);
+  wait(2.5,sec);
+  //intake.stop();
+  //wait(1.5,sec);
+  cos_move_distance_smooth(-7, 180, 6, 6);
   intakeCylander.set(false);
-  aligner.set(true);
+  //aligner.set(true);
   shooter.set(true);
-  chassis.turn_to_angle(0); // to long goal
+  intakedown.stop();
+  chassis.turn_to_angle(5); // to long goal
   wait(0.05,sec);
-  chassis.drive_distance(8, 0, 10, 10);
+  chassis.drive_distance(8, 5, 6, 6);
   wait(0.05,sec);
   shooter.set(true);
   wait(0.05,sec);
-  cos_move_distance_smooth(10, 0, 10, 10);
+  cos_move_distance_smooth(10, 0, 6, 6);
   wait(0.05,sec);
-  intake.spin(forward, 12, volt);
+  intake.spin(forward, 10, volt);
   wait(0.05,sec);
   intakedown.spin(forward, 10, volt);
+  shooter.set(false);
 }
 //--------------------------------------------------------
 void B_left()
@@ -232,69 +270,72 @@ void B_left()
 
   chassis.set_drive_constants(12, 2.0, 0.005, 2, 10);
   chassis.set_heading_constants(12, 1.5, 0.005, 2, 10);
-
-  //shooter.set(true);
-  cos_move_distance_smooth(14.5, 290, 10, 10); // mirrored angle
+  chassis.turn_to_angle(300);
   wait(0.05,sec);
   intakedown.spin(forward, 12, volt);
+  chassis.drive_distance(20, 300, 6, 6);
+  wait(.05,sec);
+  chassis.turn_to_angle(43); 
   wait(0.05,sec);
-  chassis.turn_to_angle(44); // mirrored angle
+  chassis.drive_distance(8, 43, 6, 6);//intake 3 balls
+  wait(.5,sec);
+  pushCylander.set(true);
   wait(0.05,sec);
-  cos_move_distance_smooth(15, 44, 6, 6);//intake 3 balls
-  wait(0.8,sec);
-  cos_move_distance_smooth(11, 44, 8, 8);//middle goals
-  wait(0.05,sec);
-  intake.spin(forward, 12, volt);
-  wait(1.5,sec);
+  chassis.drive_distance(22.5, 43, 6, 6);//middle goals
+  intake.spin(forward, 10, volt);
+  wait(2,sec);//outake middle goals
   intake.stop();
   wait(0.05,sec);
-  cos_move_distance_smooth(-10, 44, 10, 10);//backback (mirrored)
+  chassis.drive_distance(-10, 43, 4, 4);//backback
   wait(0.05,sec);
-  chassis.turn_to_angle(230); // mirrored angle
+  pushCylander.set(false);
   wait(0.05,sec);
-  cos_move_distance_smooth(27, 230, 10, 10);//to the loader
+  chassis.turn_to_angle(240);
   wait(0.05,sec);
-  chassis.turn_to_angle(180);
-  intakedown.stop();
+  chassis.drive_distance(30.5, 240, 6, 6);//to the loader
   wait(0.05,sec);
-  intakedown.spin(reverse, 12, volt);
+  chassis.turn_to_angle(182);
+  wait(0.05,sec);
+  chassis.drive_distance(13, 182, 6, 6);//into loader
+  wait(0.05,sec);
   intakeCylander.set(true);
-  intakedown.stop();
   wait(0.05,sec);
-  intakedown.spin(forward, 12, volt);
-  chassis.DriveL.spin(forward, 12, volt);
-  chassis.DriveR.spin(forward, 12, volt);
+  intake.spin(forward, 10, volt);
+  chassis.drive_distance(6, 182, 6, 6);
   wait(1.5,sec);
-  cos_move_distance_smooth(-7, 180, 10, 10);
-  intakedown.stop();
+  intake.stop();
+  wait(.05,sec);
+  chassis.drive_distance(-7, 182, 6, 6);
   intakeCylander.set(false);
-  aligner.set(true);
   shooter.set(true);
-  chassis.turn_to_angle(3); // to long goal
+  pushCylander.set(true);
   wait(0.05,sec);
-  chassis.drive_distance(8, 3, 10, 10);
+  chassis.turn_to_angle(2); // to long goal
+  wait(0.05,sec);
+  chassis.drive_distance(8, 2, 6, 6);
   wait(0.05,sec);
   shooter.set(true);
-  //intake.stop();
+  intake.stop();
   wait(0.05,sec);
-  cos_move_distance_smooth(10, 0, 10, 10);
+  cos_move_distance_smooth(5, 2, 6, 6);
   wait(0.05,sec);
-  intake.spin(forward, 12, volt);
+  intake.spin(forward, 10, volt);
   wait(0.05,sec);
   intakedown.spin(forward, 10, volt);
+  shooter.set(false);
 }
 /*
 void practice()
 {
   vex::color selectedTeamColor = vex::color::blue;
   
-  cos_move_distance_smooth(10, 0, 10, 10); 
+  cos_move_distance_smooth(10, 0, 6, 6); 
   chassis.turn_to_angle(90); // mirrored angle
-  cos_move_distance_smooth(10, 0, 10, 10); 
+  cos_move_distance_smooth(10, 0, 6, 6); 
   chassis.turn_to_angle(90); // mirrored angle
-  cos_move_distance_smooth(10, 0, 10, 10); 
+  cos_move_distance_smooth(10, 0, 6, 6); 
   chassis.turn_to_angle(90); // mirrored angle
-  cos_move_distance_smooth(10, 0, 10, 10);
+  cos_move_distance_smooth(10, 0, 6, 6);
 
   
 }*/
@@ -327,11 +368,11 @@ void B_17022A()
   //--------------------------------------------------------
   chassis.set_drive_constants(12, 2.0, 0.005, 5, 5);
   chassis.set_heading_constants(12, 1.5, 0.005, 5, 10);
-  chassis.drive_distance(3, 316, 10, 10);
+  chassis.drive_distance(3, 316, 6, 6);
   //----------------------------------------------------------------------
   autoarm();
   //---------------------------------------------------------------------
-  chassis.drive_distance(-3, 315, 10, 10); // 微退一點
+  chassis.drive_distance(-3, 315, 6, 6); // 微退一點
   //---------------------------------------------------------------------
   chassis.set_drive_constants(12, 1.2, 0.005, 6, 20);
   chassis.set_heading_constants(12, 1.2, 0.007, 6, 20);
@@ -350,7 +391,7 @@ void B_17022A()
   //----------------------------------------------------------------
   intake.spin(forward, 12, volt);
   intakedown.spin(reverse, 12, volt);
-  chassis.drive_distance(20, 180, 8, 8);
+  chassis.drive_distance(20, 180, 6, 6);
   wait(0.2, sec);
   chassis.drive_distance(-18, 180, 7, 7);
   wait(0.2, sec);
