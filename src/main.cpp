@@ -178,7 +178,7 @@ void cos_move_distance_smooth(double distance_in, double angle_deg, double turn_
   R1.stop(); R2.stop(); R3.stop();
 }
 
-int current_auton_selection = 5;
+int current_auton_selection = 6;
 bool auto_started = false;
 int air = 0;
 int temp = 0;
@@ -737,13 +737,13 @@ int intakeControlTask()
     if (Controller1.ButtonL1.pressing())
     {
       // L1：只動 intakedown 反轉
-      intake.stop(coast);
+      intake.spin(forward, 12, volt);
       intakedown.spin(forward, 12, volt);
     }
     else if (Controller1.ButtonL2.pressing())
     {
       // L2：只動 intakedown 正轉
-      intake.stop(coast);
+      intake.spin(reverse, 12, volt);
       intakedown.spin(reverse, 12, volt);
     }
     else if (Controller1.ButtonR1.pressing())
@@ -755,8 +755,8 @@ int intakeControlTask()
     else if (Controller1.ButtonR2.pressing())
     {
       // 原本功能保留：R2
-      intake.spin(forward, 12, volt);
-      intakedown.spin(forward, 12, volt);  
+      intake.spin(reverse, 12, volt);
+      intakedown.spin(reverse, 12, volt);  
     }
     else
     {
@@ -797,9 +797,9 @@ void usercontrol(void)
   Controller1.ButtonDown.pressed(alignerSwitch);
   //-----------------------------------------------------
   Controller1.ButtonR1.pressed(shooterOn);
-  Controller1.ButtonR1.pressed(alignerON);
   Controller1.ButtonR1.released(shooterOff);
-  Controller1.ButtonR1.released(alignerOFF);
+  Controller1.ButtonR2.pressed(shooterOn);
+  Controller1.ButtonR2.released(shooterOff);
   while (1)
   {
     chassis.control_tank(100); // 底盤控制

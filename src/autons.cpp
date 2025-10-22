@@ -206,57 +206,58 @@ void R_solo()
 
 void B_right()
 {
+  vex::color selectedTeamColor = vex::color::blue;
 
-
-  cos_move_distance_smooth(16, 60, 6, 6); // mirrored angle
+  chassis.set_drive_constants(12, 2.0, 0.005, 2, 10);
+  chassis.set_heading_constants(12, 1.5, 0.005, 2, 10);
+  chassis.turn_to_angle(300);
   wait(0.05,sec);
-  intakedown.spin(forward, 11, volt);
+  intakedown.spin(forward, 12, volt);
+  chassis.drive_distance(20, 60, 6, 6);
+  wait(.05,sec);
+  chassis.turn_to_angle(317); 
   wait(0.05,sec);
-  chassis.turn_to_angle(315); // mirrored angle
+  chassis.drive_distance(8, 317, 6, 6);//intake 3 balls
+  wait(.5,sec);
+  pushCylinder.set(true);
   wait(0.05,sec);
-  cos_move_distance_smooth(17, 315, 5, 6);//intake 3 balls
-  wait(0.8,sec);
-  cos_move_distance_smooth(11, 315, 8, 6);//middle goals
-  wait(0.05, sec);
-  intakedown.stop();
+  chassis.drive_distance(24, 317, 6, 6);//middle goals
+  intake.spin(forward, 10, volt);
+  wait(2,sec);//outake middle goals
+  intake.stop();
   wait(0.05,sec);
-  intakedown.spin(reverse, 8, volt);
-  wait(3,sec);
-  cos_move_distance_smooth(-10, 315, 6, 6);//backback (mirrored)
+  chassis.drive_distance(-10, 317, 4, 4);//backback
   wait(0.05,sec);
-  chassis.turn_to_angle(132); // mirrored angle
+  pushCylinder.set(false);
   wait(0.05,sec);
-  intakedown.stop();
+  chassis.turn_to_angle(120);
   wait(0.05,sec);
-  cos_move_distance_smooth(19.5, 135, 6, 6);//to the loader
+  chassis.drive_distance(30.5, 120, 6, 6);//to the loader
   wait(0.05,sec);
-  chassis.turn_to_angle(185);
-  
-  /*
+  chassis.turn_to_angle(178);
   wait(0.05,sec);
-  cos_move_distance_smooth(6, 180, 6, 6);//into loader not sure!!!
+  chassis.drive_distance(13, 178, 6, 6);//into loader
   wait(0.05,sec);
-  */
   intakeCylander.set(true);
-  intakedown.spin(forward,10,volt);
   wait(0.05,sec);
-  chassis.DriveL.spin(forward, 7, volt);
-  chassis.DriveR.spin(forward, 7, volt);
-  wait(2.5,sec);
-  //intake.stop();
-  //wait(1.5,sec);
-  cos_move_distance_smooth(-7, 180, 6, 6);
+  intake.spin(forward, 10, volt);
+  chassis.drive_distance(8, 178, 6, 6);
+  wait(1.5,sec);
+  intake.stop();
+  wait(.05,sec);
+  chassis.drive_distance(-7, 178, 6, 6);
   intakeCylander.set(false);
-  //aligner.set(true);
-  shooter.set(true);
-  intakedown.stop();
-  chassis.turn_to_angle(5); // to long goal
-  wait(0.05,sec);
-  chassis.drive_distance(8, 5, 6, 6);
-  wait(0.05,sec);
   shooter.set(true);
   wait(0.05,sec);
-  cos_move_distance_smooth(10, 0, 6, 6);
+  chassis.turn_to_angle(356); // to long goal
+  wait(0.05,sec);
+  chassis.drive_distance(9, 356, 6, 6);
+  pushCylinder.set(true);
+  wait(0.05,sec);
+  shooter.set(true);
+  intake.stop();
+  wait(0.05,sec);
+  cos_move_distance_smooth(5, 356, 6, 6);
   wait(0.05,sec);
   intake.spin(forward, 10, volt);
   wait(0.05,sec);
@@ -273,56 +274,59 @@ void B_left()
   chassis.turn_to_angle(300);
   wait(0.05,sec);
   intakedown.spin(forward, 12, volt);
+  intake.spin(forward, 12, volt);
   chassis.drive_distance(20, 300, 6, 6);
   wait(.05,sec);
   chassis.turn_to_angle(43); 
   wait(0.05,sec);
   chassis.drive_distance(8, 43, 6, 6);//intake 3 balls
   wait(.5,sec);
-  pushCylander.set(true);
+  shooter.set(true);
+  pushCylinder.set(true);
   wait(0.05,sec);
-  chassis.drive_distance(22.5, 43, 6, 6);//middle goals
-  intake.spin(forward, 10, volt);
-  wait(2,sec);//outake middle goals
+  chassis.drive_distance(26, 43, 6, 6);//middle goals
+  intake.spin(forward, 7, volt);
+  wait(2.5,sec);//outake middle goals
   intake.stop();
   wait(0.05,sec);
   chassis.drive_distance(-10, 43, 4, 4);//backback
   wait(0.05,sec);
-  pushCylander.set(false);
+  pushCylinder.set(false);
   wait(0.05,sec);
   chassis.turn_to_angle(240);
   wait(0.05,sec);
-  chassis.drive_distance(30.5, 240, 6, 6);//to the loader
+  chassis.drive_distance(32, 240, 6, 6);//to the loader
   wait(0.05,sec);
   chassis.turn_to_angle(182);
   wait(0.05,sec);
-  chassis.drive_distance(13, 182, 6, 6);//into loader
+  chassis.drive_distance(14, 182, 10, 10);//into loader
   wait(0.05,sec);
   intakeCylander.set(true);
   wait(0.05,sec);
   intake.spin(forward, 10, volt);
-  chassis.drive_distance(6, 182, 6, 6);
-  wait(1.5,sec);
+  chassis.drive_distance(10, 182, 6, 6);
+  wait(.7,sec);
   intake.stop();
   wait(.05,sec);
   chassis.drive_distance(-7, 182, 6, 6);
   intakeCylander.set(false);
   shooter.set(true);
-  pushCylander.set(true);
   wait(0.05,sec);
-  chassis.turn_to_angle(2); // to long goal
+  chassis.turn_to_angle(4); // to long goal
   wait(0.05,sec);
-  chassis.drive_distance(8, 2, 6, 6);
+  chassis.drive_distance(11, 4, 6, 6);
+  pushCylinder.set(true);
   wait(0.05,sec);
   shooter.set(true);
-  intake.stop();
   wait(0.05,sec);
-  cos_move_distance_smooth(5, 2, 6, 6);
+  cos_move_distance_smooth(5, 4, 6, 6);
   wait(0.05,sec);
   intake.spin(forward, 10, volt);
   wait(0.05,sec);
   intakedown.spin(forward, 10, volt);
-  shooter.set(false);
+  wait(2.5,sec);
+  intake.stop();
+  intakedown.stop();
 }
 /*
 void practice()

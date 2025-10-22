@@ -8,24 +8,25 @@ using code = vision::code;
 brain Brain;
 
 // VEXcode device constructors
-motor L1 = motor(PORT1, ratio6_1, true);
-motor L2 = motor(PORT2, ratio6_1, false);
-motor L3 = motor(PORT3, ratio6_1, true);
+motor L1 = motor(PORT18, ratio6_1, true);
+motor L2 = motor(PORT17, ratio6_1, false);
+motor L3 = motor(PORT19, ratio6_1, true);
 motor R1 = motor(PORT7, ratio6_1, false);
-motor R2 = motor(PORT8, ratio6_1, true);
-motor R3 = motor(PORT9, ratio6_1, false);
+motor R2 = motor(PORT9, ratio6_1, true);
+motor R3 = motor(PORT8, ratio6_1, false);
 inertial Inertial = inertial(PORT12);
 controller Controller1 = controller(primary);
-motor intake = motor(PORT14, ratio6_1, true);
+motor intake = motor(PORT15, ratio6_1, true);
 optical Optical = optical(PORT7);
 optical Optical_go = optical(PORT16);
 motor intakedown = motor(PORT11, ratio6_1, false);
-digital_out pushCylinder = digital_out(Brain.ThreeWirePort.A);
-digital_out intakeCylander = digital_out(Brain.ThreeWirePort.B);
+
+digital_out pushCylinder = digital_out(Brain.ThreeWirePort.B);
+digital_out intakeCylander = digital_out(Brain.ThreeWirePort.H);
 digital_out redlight = digital_out(Brain.ThreeWirePort.C);
 digital_out whitelight = digital_out(Brain.ThreeWirePort.D);
-digital_out shooter = digital_out(Brain.ThreeWirePort.G);
-digital_out aligner = digital_out(Brain.ThreeWirePort.H);
+digital_out shooter = digital_out(Brain.ThreeWirePort.A);
+digital_out aligner = digital_out(Brain.ThreeWirePort.E);
 motor hang1 = motor(PORT19, ratio36_1, true);
 vex::vision Vision1 = vex::vision(vex::PORT13, 50);
 vex::vision Vision2 = vex::vision(vex::PORT15, 50);
