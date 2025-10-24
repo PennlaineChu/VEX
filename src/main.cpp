@@ -178,7 +178,7 @@ void cos_move_distance_smooth(double distance_in, double angle_deg, double turn_
   R1.stop(); R2.stop(); R3.stop();
 }
 
-int current_auton_selection = 6;
+int current_auton_selection = 0;
 bool auto_started = false;
 int air = 0;
 int temp = 0;
@@ -229,6 +229,23 @@ void hang() // 預留吊掛
   pushCylinder = !pushCylinder;
   intake.stop(brake);
 }
+void pushON()  
+  {
+   pushCylinder = true;  
+  }
+void pushOFF() {
+   pushCylinder = false; 
+  }
+bool shooterIntakeOn = false;
+
+void shooterIntakeSwitch() {
+    shooterIntakeOn = !shooterIntakeOn;
+    shooter = shooterIntakeOn;  // assign to digital_out
+    intakeCylander = shooterIntakeOn;  // assign to digital_out
+}
+
+
+   
 
 struct Rect { int x, y, w, h; };
 
@@ -349,7 +366,6 @@ static inline DashTab drawTabs(DashTab current, const char* autonText) {
   return out;
 }
 
-// ========= 你的馬達清單 =========
 extern motor L1,L2,L3,R1,R2,R3,intake,intakedown,hang1;
 static motor* kMotors[] = { &L1,&R1,&L2,&R2,&L3,&L3,&intake,&intakedown,&hang1 };
 static const char* kMotorNames[] = { "L1","R1","L2","R2","L3","R3","INTK","IDWN","HANG" };
@@ -588,8 +604,8 @@ void pre_auton(void)
   const int blue_height = screen_h - red_height;
 
   const char* labels[10] = {
-    "R_right","R_left","R_right_F","R_left_F","R_solo",
-    "B_right","B_left","B_right_F","B_left_F","B_solo"
+    "Right_43","Left_43","Right_7","Left_7","Solo",
+    "Skills","blank1","blank2","blank3","blank4"
   };
 
   Brain.Screen.setFont(vex::fontType::mono20);
@@ -663,42 +679,46 @@ void autonomous(void)
   {
     selectedTeamColor = vex::color::black; // 預設為黑隊
   }
+
   switch (current_auton_selection)
   {
 
   case 0:
-    R_right();
+    Right_43();
     break;
   case 1:
-    R_left();
+    Left_43();
     break;
   case 2:
-    R_right_final();
+    Right_7();
     break;
   case 3:
-    R_left_final();
+    Left_7();
     break;
   case 4:
-    R_solo();
+    Solo();
     break;
   case 5:
-    B_right();
+    Skills();
     break;
   case 6:
-    B_left();
+    blank1();
     break;
   case 7:
-    B_right_final();
+    blank2();
     break;
   case 8:
-    B_left_final();
+    blank3();
     break;
   case 9:
-    B_solo();
+    blank4();
     break;
   }
   
 }
+
+
+
 
 int momogoTask()
 {
@@ -738,13 +758,13 @@ int intakeControlTask()
     {
       // L1：只動 intakedown 反轉
       intake.spin(forward, 12, volt);
-      intakedown.spin(forward, 12, volt);
+      intakedown.spin(forward, 9, volt);
     }
     else if (Controller1.ButtonL2.pressing())
     {
       // L2：只動 intakedown 正轉
       intake.spin(reverse, 12, volt);
-      intakedown.spin(reverse, 12, volt);
+      intakedown.spin(reverse, 9, volt);
     }
     else if (Controller1.ButtonR1.pressing())
     {
@@ -790,9 +810,10 @@ void usercontrol(void)
   //-----------------------------------------------------
   Controller1.ButtonY.pressed(shooterSwitch);
   //-----------------------------------------------------
-  Controller1.ButtonRight.pressed(intakecylanderon);
+  Controller1.ButtonRight.pressed(shooterIntakeSwitch);
   //-----------------------------------------------------
-  Controller1.ButtonB.pressed(hang); //屁股
+  Controller1.ButtonB.pressed(pushON);
+  Controller1.ButtonB.released(pushOFF);
   //-----------------------------------------------------
   Controller1.ButtonDown.pressed(alignerSwitch);
   //-----------------------------------------------------

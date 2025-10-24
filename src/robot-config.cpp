@@ -27,7 +27,7 @@ digital_out redlight = digital_out(Brain.ThreeWirePort.C);
 digital_out whitelight = digital_out(Brain.ThreeWirePort.D);
 digital_out shooter = digital_out(Brain.ThreeWirePort.A);
 digital_out aligner = digital_out(Brain.ThreeWirePort.E);
-motor hang1 = motor(PORT19, ratio36_1, true);
+motor hang1 = motor(PORT16, ratio36_1, true);
 vex::vision Vision1 = vex::vision(vex::PORT13, 50);
 vex::vision Vision2 = vex::vision(vex::PORT15, 50);
 
