@@ -14,20 +14,18 @@ motor L3 = motor(PORT19, ratio6_1, true);
 motor R1 = motor(PORT7, ratio6_1, false);
 motor R2 = motor(PORT9, ratio6_1, true);
 motor R3 = motor(PORT8, ratio6_1, false);
-inertial Inertial = inertial(PORT12);
+inertial Inertial = inertial(PORT20);
 controller Controller1 = controller(primary);
-motor intake = motor(PORT15, ratio6_1, true);
-optical Optical = optical(PORT7);
+motor intake = motor(PORT6, ratio6_1, false);
+optical Optical = optical(PORT10);
 optical Optical_go = optical(PORT16);
-motor intakedown = motor(PORT11, ratio6_1, false);
+motor intakedown = motor(PORT5, ratio6_1, true);
 
 digital_out pushCylinder = digital_out(Brain.ThreeWirePort.B);
-digital_out intakeCylander = digital_out(Brain.ThreeWirePort.H);
-digital_out redlight = digital_out(Brain.ThreeWirePort.C);
-digital_out whitelight = digital_out(Brain.ThreeWirePort.D);
+digital_out intakeCylander = digital_out(Brain.ThreeWirePort.C);
+digital_out redlight = digital_out(Brain.ThreeWirePort.H);
+digital_out whitelight = digital_out(Brain.ThreeWirePort.G);
 digital_out shooter = digital_out(Brain.ThreeWirePort.A);
-digital_out aligner = digital_out(Brain.ThreeWirePort.E);
-motor hang1 = motor(PORT16, ratio36_1, true);
 vex::vision Vision1 = vex::vision(vex::PORT13, 50);
 vex::vision Vision2 = vex::vision(vex::PORT15, 50);
 

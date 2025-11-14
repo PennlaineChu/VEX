@@ -34,68 +34,119 @@ int info()
 
 void Right_43()
 {
-//--------------------------------------------------------
-  chassis.set_drive_constants(12, 2.0, 0.005, 2, 10);
-  chassis.set_heading_constants(12, 1.5, 0.005, 2, 10);
-  chassis.turn_to_angle(60);
-  wait(0.05,sec);
+  // ========== CORRECTED COORDINATE MAP ==========
+  // Field: 140.5" × 140.5"
+  // Robot: 12.5" wide × 16" long (inertia at center: 6.25" from sides, 8" from front/back)
+  // START: (22, 22.5) - Actual starting position on field (robot center)
+  // Loader: (37.5, 8.25) - Loader position
+  // Coordinate system: 0° = +Y (forward), 90° = +X (right), 180° = -Y, 270° = -X
+  
+  // ========== All coordinates for XY navigation ==========
+  const double START_X = 22.0, START_Y = 22.5;
+  
+  // Phase 1: Drive to first position
+  const double FIRST_POS_X = 41.05, FIRST_POS_Y = 33.5;
+  
+  // Phase 2: Approach 3 blocks (318° = -42° from +Y axis)
+  const double BLOCKS_3_APPROACH_X = 38.67, BLOCKS_3_APPROACH_Y = 36.61; // 4" before blocks at 318°
+  const double BLOCKS_3_X = 36.36, BLOCKS_3_Y = 38.70;                   // 3 blocks location
+  
+  // Phase 3: Score at middle goal
+  const double MIDDLE_GOAL_APPROACH_X = 22.33, MIDDLE_GOAL_APPROACH_Y = 54.15; // 5" before goal
+  const double MIDDLE_GOAL_X = 19.63, MIDDLE_GOAL_Y = 57.28;                   // Middle goal
+  
+  // Phase 4: Back up from goal and go to loader
+  const double AFTER_BACKUP_X = 24.98, AFTER_BACKUP_Y = 51.34; // 8" backup from goal
+  const double LOADER_X = 37.5, LOADER_Y = 8.25;               // Loader position
+  
+  // Phase 5: Load 3 blocks (push backward into loader at 178°)
+  const double LOADER_ENTRY_X = 37.5, LOADER_ENTRY_Y = 16.25;  // 8" in front of loader
+  const double LOADER_DEEP_X = 37.5, LOADER_DEEP_Y = 8.25;     // Deep in loader (29" total push)
+  const double AFTER_BACKUP2_X = 37.5, AFTER_BACKUP2_Y = 15.25; // 7" backed out
+  
+  // Phase 6: Score at goal
+  const double GOAL_APPROACH_X = 37.5, GOAL_APPROACH_Y = 27.25; // 5" before goal
+  const double GOAL_X = 37.5, GOAL_Y = 32.25;                   // Final goal
+  
+  // Initialize position tracking with actual start position
+  set_robot_pose(START_X, START_Y, 0.0);
+  
+  // ========== PHASE 1: Drive to first position ==========
   intakedown.spin(forward, 12, volt);
-  //intake.spin(forward, 12, volt);
-  chassis.drive_distance(22, 60, 6, 6);
-  wait(.05,sec);
-  chassis.turn_to_angle(318); 
-  chassis.drive_distance(4, 318, 4, 4);//preintake
-  wait(0.05,sec);
-  chassis.drive_distance(3, 318, 4, 4);//intake 3 balls
-  //shooter.set(true);
-  wait(0.05,sec);
-  chassis.drive_distance(20, 318, 6, 6);//middle goals
+  driveToXY(FIRST_POS_X, FIRST_POS_Y, 8.0, 4.0);
+  wait(0.05, sec);
+  
+  // ========== PHASE 2: Approach and intake 3 blocks ==========
+  driveToXY(BLOCKS_3_APPROACH_X, BLOCKS_3_APPROACH_Y, 4.0, 4.0); // Approach slowly
+  wait(0.05, sec);
+  driveToXY(BLOCKS_3_X, BLOCKS_3_Y, 4.0, 4.0); // Drive onto blocks
+  wait(0.05, sec);
+  
+  // ========== PHASE 3: Score at middle goal ==========
+  driveToXY(MIDDLE_GOAL_APPROACH_X, MIDDLE_GOAL_APPROACH_Y, 8.0, 4.0); // Approach goal
+  wait(0.05, sec);
   intake.spin(reverse, 12, volt);
-  chassis.drive_distance(5, 318, 6, 6);//middle goals
+  driveToXY(MIDDLE_GOAL_X, MIDDLE_GOAL_Y, 6.0, 4.0); // Push into goal
   intakedown.spin(reverse, 9, volt);
-  wait(1.5,sec);//outake middle goals
+  wait(1.5, sec); // Outtake 3 blocks onto goal
   intake.stop();
-  wait(0.05,sec);
-  chassis.drive_distance(-8, 318, 4, 4);//backback
-  wait(0.05,sec);
+  wait(0.05, sec);
+  
+  // ========== PHASE 4: Back up and go to loader ==========
+  driveToXY(AFTER_BACKUP_X, AFTER_BACKUP_Y, 4.0, 4.0); // Back away from goal
+  wait(0.05, sec);
   pushCylinder.set(false);
-  wait(0.05,sec);
-  chassis.turn_to_angle(120);
-  wait(0.05,sec);
-  chassis.drive_distance(33, 120, 10, 10);//to the loader
-  wait(0.05,sec);
+  wait(0.05, sec);
+  
+  driveToXY(LOADER_ENTRY_X, LOADER_ENTRY_Y, 10.0, 4.0); // Navigate to loader entry
+  wait(0.05, sec);
   intakedown.spin(forward, 12, volt);
-  wait(0.05,sec);
-  chassis.turn_to_angle(178);
-  wait(0.05,sec);
+  wait(0.05, sec);
+  
+  // ========== PHASE 5: Load 3 blocks at loader ==========
+  // Turn to face loader (backward = 180°)
+  turnToXY(LOADER_DEEP_X, LOADER_DEEP_Y, 4.0);
+  wait(0.05, sec);
   shooter.set(true);
-  wait(0.05,sec);
-  chassis.drive_distance(8, 178, 10, 10);//into loader
-  wait(0.05,sec);
+  wait(0.05, sec);
+  
+  // Drive backward into loader (driveToXY will go backward since target is behind)
+  driveToXY(LOADER_DEEP_X, LOADER_DEEP_Y, 10.0, 4.0);
+  wait(0.05, sec);
   intakeCylander.set(true);
-  wait(0.05,sec);
+  wait(0.05, sec);
+  
+  // Load 3 blocks
   intake.spin(forward, 12, volt);
-  chassis.drive_distance(21, 178, 8, 8);
-  wait(.5,sec);
+  wait(0.5, sec);
   intake.stop();
-  wait(.05,sec);
-  chassis.drive_distance(-7, 178, 6, 6);
+  wait(0.05, sec);
+  
+  // Back away from loader
+  driveToXY(AFTER_BACKUP2_X, AFTER_BACKUP2_Y, 6.0, 4.0); // Drive forward out of loader
   intakeCylander.set(false);
   shooter.set(true);
-  wait(0.05,sec);
-  chassis.turn_to_angle(360); // to long goal
-  wait(0.05,sec);
-  chassis.drive_distance(12, 360, 6, 6);
+  wait(0.05, sec);
+  
+  // ========== PHASE 6: Score at goal ==========
+  driveToXY(GOAL_APPROACH_X, GOAL_APPROACH_Y, 8.0, 4.0); // Approach goal
+  wait(0.05, sec);
   pushCylinder.set(true);
-  wait(0.05,sec);
-  cos_move_distance_smooth(5, 360, 6, 6);
-  wait(0.05,sec);
+  wait(0.05, sec);
+  
+  driveToXY(GOAL_X, GOAL_Y, 6.0, 4.0); // Final push into goal
+  wait(0.05, sec);
+  
   intake.spin(forward, 12, volt);
-  wait(0.05,sec);
   intakedown.spin(forward, 12, volt);
-  wait(2.5,sec);
+  wait(2.5, sec); // Score 3 blocks into goal
   intake.stop();
   intakedown.stop();
+  
+  // Display final position for debugging
+  RobotPose final = get_robot_pose();
+  Controller1.Screen.setCursor(1, 1);
+  Controller1.Screen.print("End X:%.1f Y:%.1f", final.x, final.y);
 }
 //----------------------------------------------------------------------
 
@@ -303,99 +354,98 @@ void Skills()
 
 }
 //--------------------------------------------------------
+// NOTE: recordPath() is defined in main.cpp (lines 371-403)
+// It's called from the autonomous selector (main.cpp line 1310)
+//--------------------------------------------------------
 void blank1()
 {
-  /*vex::color selectedTeamColor = vex::color::blue;
-
-  chassis.set_drive_constants(12, 2.0, 0.005, 2, 10);
-  chassis.set_heading_constants(12, 1.5, 0.005, 2, 10);
-  chassis.turn_to_angle(300);
-  wait(0.05,sec);
-  intakedown.spin(forward, 12, volt);
-  intake.spin(forward, 12, volt);
-  chassis.drive_distance(20, 300, 6, 6);
-  wait(.05,sec);
-  chassis.turn_to_angle(43); 
-  wait(0.05,sec);
-  chassis.drive_distance(8, 43, 6, 6);//intake 3 balls
-  wait(.5,sec);
-  //shooter.set(true);
-  pushCylinder.set(true);
-  wait(0.05,sec);
-  chassis.drive_distance(26, 43, 6, 6);//middle goals
-  intake.spin(forward, 7, volt);
-  wait(2.5,sec);//outake middle goals
-  intake.stop();
-  wait(0.05,sec);
-  chassis.drive_distance(-10, 43, 4, 4);//backback
-  wait(0.05,sec);
-  pushCylinder.set(false);
-  wait(0.05,sec);
-  chassis.turn_to_angle(240);
-  wait(0.05,sec);
-  chassis.drive_distance(32, 240, 6, 6);//to the loader
-  wait(0.05,sec);
-  chassis.turn_to_angle(182);
-  wait(0.05,sec);
-  chassis.drive_distance(14, 182, 10, 10);//into loader
-  wait(0.05,sec);
-  intakeCylander.set(true);
-  wait(0.05,sec);
-  intake.spin(forward, 10, volt);
-  chassis.drive_distance(10, 182, 6, 6);
-  wait(.7,sec);
-  intake.stop();
-  wait(.05,sec);
-  chassis.drive_distance(-7, 182, 6, 6);
-  intakeCylander.set(false);
-  shooter.set(true);
-  wait(0.05,sec);
-  chassis.turn_to_angle(4); // to long goal
-  wait(0.05,sec);
-  chassis.drive_distance(11, 4, 6, 6);
-  pushCylinder.set(true);
-  wait(0.05,sec);
-  shooter.set(true);
-  wait(0.05,sec);
-  cos_move_distance_smooth(5, 4, 6, 6);
-  wait(0.05,sec);
-  intake.spin(forward, 10, volt);
-  wait(0.05,sec);
-  intakedown.spin(forward, 10, volt);
-  wait(2.5,sec);
-  intake.stop();
-  intakedown.stop();*/
+  odom_test();
+  wait(5, sec);
 }
-/*
-void practice()
-{
-  vex::color selectedTeamColor = vex::color::blue;
-  
-  cos_move_distance_smooth(10, 0, 6, 6); 
-  chassis.turn_to_angle(90); // mirrored angle
-  cos_move_distance_smooth(10, 0, 6, 6); 
-  chassis.turn_to_angle(90); // mirrored angle
-  cos_move_distance_smooth(10, 0, 6, 6); 
-  chassis.turn_to_angle(90); // mirrored angle
-  cos_move_distance_smooth(10, 0, 6, 6);
-
-  
-}*/
-
 //--------------------------------------------------------
 void blank2()
 {
-  vex::color selectedTeamColor = vex::color::blue;   
-}
-//--------------------------------------------------------
-void blank3()
-{
-  vex::color selectedTeamColor = vex::color::blue;
+  // Set starting position and heading to 0
+  L1.resetPosition(); L2.resetPosition(); L3.resetPosition();
+  R1.resetPosition(); R2.resetPosition(); R3.resetPosition();
+  set_robot_pose(22, 22.5, 0);
+
+  vex::task odomTask(odometry_task);
+
+  
+  driveToXY(22, 54, 6, 1);
+  wait(0.05, sec);
+  turnToXY(-22, 80, 3);
+  wait(0.05, sec);
+  driveToXY(-22, 80, 6, 1);
+  wait(0.05, sec);
+  turnToXY(-13, 88, 3);
+  wait(0.05, sec);
+  driveToXY(-13, 88, 6, 1);
+  
 }
 //-------------------------------------------------------- 
-void blank4()
+void blank3()
 {
-  vex::color selectedTeamColor = vex::color::blue;
+  // ========== SIMPLE MOTOR TEST - DO NOT DELETE ==========
+  Brain.Screen.clearScreen();
+  Brain.Screen.printAt(10, 20, "Motor Test Starting...");
+  Controller1.Screen.clearScreen();
+  Controller1.Screen.setCursor(1, 1);
+  Controller1.Screen.print("Motor Test");
+  wait(1, sec);
+  
+  // Test: Drive forward for 3 seconds at 8 volts
+  Brain.Screen.printAt(10, 40, "Driving FORWARD...");
+  Controller1.Screen.setCursor(2, 1);
+  Controller1.Screen.print("Forward 8V...");
+  
+  L1.spin(forward, 8, volt);
+  L2.spin(forward, 8, volt);
+  L3.spin(forward, 8, volt);
+  R1.spin(forward, 8, volt);
+  R2.spin(forward, 8, volt);
+  R3.spin(forward, 8, volt);
+  wait(3, sec);
+  
+  // Stop
+  L1.stop(brake); 
+  L2.stop(brake); 
+  L3.stop(brake);
+  R1.stop(brake); 
+  R2.stop(brake); 
+  R3.stop(brake);
+  
+  Brain.Screen.printAt(10, 60, "Stopped.");
+  Controller1.Screen.setCursor(2, 1);
+  Controller1.Screen.print("Stopped     ");
+  wait(1, sec);
+  
+  // Test: Drive backward for 3 seconds
+  Brain.Screen.printAt(10, 80, "Driving BACKWARD...");
+  Controller1.Screen.setCursor(2, 1);
+  Controller1.Screen.print("Backward 8V...");
+  
+  L1.spin(reverse, 8, volt);
+  L2.spin(reverse, 8, volt);
+  L3.spin(reverse, 8, volt);
+  R1.spin(reverse, 8, volt);
+  R2.spin(reverse, 8, volt);
+  R3.spin(reverse, 8, volt);
+  wait(3, sec);
+  
+  // Stop
+  L1.stop(brake); 
+  L2.stop(brake); 
+  L3.stop(brake);
+  R1.stop(brake); 
+  R2.stop(brake); 
+  R3.stop(brake);
+  
+  Brain.Screen.printAt(10, 100, "Test COMPLETE!");
+  Controller1.Screen.setCursor(2, 1);
+  Controller1.Screen.print("DONE!       ");
+  Controller1.rumble("--");
 }
 //--------------------------------------------------------
 
@@ -419,12 +469,10 @@ void B_17022A()
   chassis.set_drive_constants(12, 1.2, 0.005, 6, 20);
   chassis.set_heading_constants(12, 1.2, 0.007, 6, 20);
   chassis.drive_distance(-24.5, 290, 12, 12);
-  hang1.spin(forward, 12, volt);
   chassis.set_drive_constants(12, 1, 0.005, 6, 5);
   chassis.set_heading_constants(12, 1, 0.007, 6, 5);
   chassis.drive_distance(-10, 290, 4.5, 4.5);
   intakeCylander = true;
-  hang1.stop(coast);
   wait(0.4, sec);
   //-----------------------------------------------------------------
   chassis.set_drive_constants(12, 1, 0.005, 5, 20);
@@ -457,15 +505,60 @@ void B_17022A()
   intake.spin(forward, 12, volt);
   wait(1, sec);
   //--------------------- wait --------------------------------
-  hang1.spinToPosition(-170, deg, true);
   chassis.drive_distance(7, 50, 7, 7);
   intake.stop(brake);
   intakedown.stop(brake);
-  hang1.stop(hold);
 }
 
 void odom_test()
 {
+  // Reset encoders and set starting pose
+  L1.resetPosition(); L2.resetPosition(); L3.resetPosition();
+  R1.resetPosition(); R2.resetPosition(); R3.resetPosition();
+  set_robot_pose(0, 0, 0);
+  
+  // Start odometry task
+  vex::task odomTask(odometry_task);
+  wait(0.5, sec);
+  
+  Controller1.Screen.clearScreen();
+  Controller1.Screen.setCursor(1, 1);
+  Controller1.Screen.print("ODOM TEST");
+  Controller1.Screen.setCursor(2, 1);
+  Controller1.Screen.print("Moving forward...");
+  wait(1, sec);
+  
+  // Test 1: Drive forward 20" at 0° (should increase Y)
+  driveToXY(0, 20, 6, 1);
+  
+  RobotPose pose1 = get_robot_pose();
+  Controller1.Screen.clearScreen();
+  Controller1.Screen.setCursor(1, 1);
+  Controller1.Screen.print("After forward 20in:");
+  Controller1.Screen.setCursor(2, 1);
+  Controller1.Screen.print("X:%.2f Y:%.2f H:%.1f", pose1.x, pose1.y, pose1.heading);
+  Controller1.Screen.setCursor(3, 1);
+  Controller1.Screen.print("Expected: X:0 Y:20");
+  wait(3, sec);
+  
+  // Test 2: Turn to 90° and drive right 20" (should increase X)
+  turnToXY(20, 20, 3);
+  wait(0.5, sec);
+  driveToXY(20, 20, 6, 1);
+  
+  RobotPose pose2 = get_robot_pose();
+  Controller1.Screen.clearScreen();
+  Controller1.Screen.setCursor(1, 1);
+  Controller1.Screen.print("After right 20in:");
+  Controller1.Screen.setCursor(2, 1);
+  Controller1.Screen.print("X:%.2f Y:%.2f H:%.1f", pose2.x, pose2.y, pose2.heading);
+  Controller1.Screen.setCursor(3, 1);
+  Controller1.Screen.print("Expected: X:20 Y:20");
+  wait(3, sec);
+  
+  Controller1.Screen.clearScreen();
+  Controller1.Screen.setCursor(1, 1);
+  Controller1.Screen.print("TEST COMPLETE");
 }
 
 void PIDtest()

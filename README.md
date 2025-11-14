@@ -1,102 +1,246 @@
-# Team 88168A Robotics Project
+# Team 23083Z Robotics Project
 
 ## Introduction
 
-Welcome to **Team 88168A's Robotics Project** repository! This repository contains the source code for our team's robot, which is used in various robotics competitions. We leverage the **VEX Robotics platform** for both the hardware and software, with our code built to control the robot's movements and actions during matches.
+Welcome to **Team 23083Z's Robotics Project** repository! This repository contains the source code for our VEX Robotics competition robot, featuring advanced odometry, XY navigation, and autonomous path recording capabilities.
 
-Our team is dedicated to developing **efficient**, **innovative**, and **competitive solutions** for both autonomous and driver-controlled operations. We integrate **advanced control systems**, **sensors**, and **feedback loops** to ensure smooth and effective functionality in competitive environments.
-
-## Project Structure
-
-This project is based on the **VEX Robotics V5 system**, with the code written in **C++** using the VEX V5 C++ API. The repository is organized into several key components to manage the robot's functions and capabilities:
-
-- **Autonomous Code**: This code runs when the robot is operating autonomously, i.e., without any input from the driver. It includes functions to control the robot’s movements, sensor inputs, and actions, based on pre-programmed strategies.
-- **Driver Control Code**: This section handles inputs from the controller, allowing real-time control over the robot’s motors, sensors, and actuators during the driver-controlled period of a match.
-- **Sensor Integration**: We utilize various sensors, such as optical sensors and encoders, to enhance the robot's autonomous navigation and provide feedback during the match for better decision-making.
-- **Subsystems**: The robot includes multiple subsystems, including the drivetrain, intake system, and arm mechanism. These subsystems are controlled independently to optimize performance during a match.
+Our team is dedicated to developing **efficient**, **innovative**, and **competitive solutions** for both autonomous and driver-controlled operations. We integrate **advanced control systems**, **sensor fusion**, **odometry tracking**, and **feedback loops** to ensure smooth and effective functionality in competitive environments.
 
 ## Key Features
 
-- **Autonomous Movement**: The robot can move and interact with the environment based on pre-programmed strategies, such as navigating the field, manipulating objects, and scoring goals autonomously.
-- **Tank Drive Control**: The robot uses tank drive, where the left and right motors are controlled by joystick inputs. The left joystick controls the left side of the robot, and the right joystick controls the right side.
-- **Arm Control**: A custom arm control logic ensures precise movement and positioning of the robot’s arm, based on sensor feedback, allowing the robot to interact with game elements effectively.
-- **Sensor Feedback**: The robot uses sensors to detect objects, adjust its path, and interact with the environment. For example, sensors are used to detect nearby obstacles or the position of game pieces.
+### 🎯 Advanced Navigation
+- **XY Coordinate Navigation**: Drive to absolute X, Y coordinates using `driveToXY()`
+- **Turn to Point**: Turn to face specific coordinates using `turnToXY()`
+- **Odometry Tracking**: Real-time position tracking using encoders + IMU sensor fusion
+- **Path Recording**: Record manual driving paths and replay them autonomously
 
-## Key Components and Functions
+### 🤖 Autonomous Capabilities
+- **Multiple Autonomous Routines**: Pre-programmed strategies for different match scenarios
+- **Sensor Integration**: Optical sensors, vision sensors, and IMU for navigation
+- **Precise Movement**: Cosine velocity profiles for smooth acceleration/deceleration
 
-Here are some of the important functions implemented in our code:
+### 🎮 Driver Control
+- **Tank Drive**: Standard tank drive control with joystick inputs
+- **Intake System**: Dual-motor intake with independent control
+- **Pneumatic Control**: Multiple pneumatic cylinders for game piece manipulation
+- **Real-time Feedback**: Position and sensor data displayed on controller screen
 
-- **`control_tank()`**: This function controls the left and right drive motors based on joystick inputs from the controller, with deadband adjustments for smooth control.
-- **`noteTask()`**: Handles autonomous behaviors, such as detecting and interacting with objects based on the selected team color. It controls the intake system and other mechanisms for pre-programmed strategies.
-- **`hangTask()`**: Manages the robot’s hanging mechanism during autonomous or driver control, responding to button inputs to adjust the position of the robot’s arm.
-- **`position_track_task()`**: Ensures the robot maintains its heading and position throughout the match using real-time tracking.
-- **`momogo_task()`**: Utilizes optical sensors to detect the distance to a mobile goal, changing the LED indicator lights accordingly: flashing lights indicate proximity, a green light shows that pneumatic pressure is off, and a red light means pneumatic pressure is on.
-- **`intake_task()`**: This function controls the robot's intake system based on the controller's button inputs. It uses R1 to activate the intake motor for forward rotation (to pick up game pieces) and R2 to activate the motor for reverse rotation (to eject or reverse the intake direction). The function adjusts the motor speed accordingly and ensures smooth operation of the intake system, allowing the driver to control the intake's direction in real-time during the match.
+## Project Structure
 
-## Setup
+```
+VEX-1/
+├── src/                    # Source code files
+│   ├── main.cpp           # Main robot code (odometry, navigation, driver control)
+│   ├── autons.cpp         # Autonomous routines
+│   ├── robot-config.cpp   # Hardware configuration
+│   ├── note.cpp           # Note/autonomous note task
+│   └── JAR-Template/      # JAR Template library files
+├── include/                # Header files
+│   ├── vex.h              # Main header with navigation functions
+│   ├── robot-config.h     # Hardware declarations
+│   ├── autons.h           # Autonomous routine declarations
+│   └── note.h             # Note task declaration
+├── PATH_RECORDING_GUIDE.md # Guide for recording paths
+└── PID_TUNING_GUIDE.md     # Guide for tuning PID controllers
+```
 
-To get started with this project, follow these steps:
-
-1. **Clone the repository** to your local machine.
-2. **Open the project** in **VEXcode V5** or your preferred C++ IDE for VEX Robotics.
-3. **Connect the VEX V5 robot** to your computer using a USB cable.
-4. **Build and download the code** to the robot's brain.
-
-## Usage
-
-### Autonomous Path
-
-The robot automatically performs pre-defined tasks at the start of the match, based on the selected team color and programmed strategy. Some example strategies include:
-||Alliance stack 4or5 ring|** Solo AWP ** :trophy:|Alliance stack 2or3 ring|
-|--|--|--|--|
-||<img src="path/VEX_RW_right.png" alt="RED R5 or RW" width="300" />|<img src="path/VEX_RED_SOLO.png" alt="RED SOLO" width="300" style="margin-right: 20px;" />|<img src="path/VEX_RW_left.png" alt="RED R5 or RW" width="300" />
-|Average Rings|4~5|3|2~3|
-|Average Mobile goals|1|2|1|
-
-### Driver Control
-
-In the driver-controlled period of the match, the robot is controlled using the **VEX controller**. The joystick inputs control the movement of the robot:
-
-- The **left joystick** controls the left side of the robot.
-- The **right joystick** controls the right side.
-  
-Additionally, the intake and arm systems can be controlled with specific buttons on the controller for tasks like lifting, lowering, or positioning objects.
-
-### Arm and Intake Control
-
-The intake and arm systems are controlled using buttons on the VEX controller. These systems are designed to efficiently handle and manipulate objects during the match, ensuring precise movement and positioning based on sensor feedback.
-## Onboard Electronics
+## Hardware Configuration
 
 ### Motors
 
-|Subsystem|Type|Name|Port:ID|Note|
-|--|--|--|--|--|
-|Chassis|11W motor|Drive|1,3,4,6,9,10|L1,L2,L3,R1,R2,R3|
-|Intake|5.5W motor|Drive|11,14|down,mid|
-|Arm|11W motor|Drive|19|hang1|
+| Subsystem | Type | Name | Port | Notes |
+|-----------|------|------|------|-------|
+| Chassis | 11W motor | L1, L2, L3 | 18, 17, 19 | Left drive motors |
+| Chassis | 11W motor | R1, R2, R3 | 7, 9, 8 | Right drive motors |
+| Intake | 5.5W motor | intake | 6 | Main intake motor |
+| Intake | 5.5W motor | intakedown | 5 | Intake down motor |
 
-### Sensors 
+### Sensors
 
-|Subsystem|Port:ID|Note|
-|--|--|--|
-|Inertial|5|gyro|
-|Optical|7|see ring|
-|Optical_go|12|see moblie go|
-|Vision|13,15|light support|
-|light|C,D|redlight,whitelight|
-|Pneumatic cylinder|A,B,G|pushCylinder,intakeCylander,hookCylinder|
+| Subsystem | Port | Notes |
+|-----------|------|-------|
+| Inertial | 20 | IMU for heading and orientation |
+| Optical | 10 | Ring detection |
+| Optical_go | 16 | Mobile goal detection |
+| Vision | 13, 15 | Vision sensors for object detection |
 
+### Digital Outputs (Pneumatics/Lights)
 
+| Device | Port | Notes |
+|--------|------|-------|
+| pushCylinder | B | Push mechanism |
+| intakeCylander | C | Intake cylinder |
+| redlight | H | Red LED indicator |
+| whitelight | G | White LED indicator |
+| shooter | A | Shooter mechanism |
+
+## Controller Mappings
+
+### Drive Control
+- **Left Joystick**: Controls left side motors (L1, L2, L3)
+- **Right Joystick**: Controls right side motors (R1, R2, R3)
+
+### Intake Control
+- **R1**: Intake forward (both intake and intakedown)
+- **R2**: Intake reverse (both intake and intakedown)
+- **Right Button**: Intakedown forward only
+- **Down Button**: Intakedown reverse only
+
+### Other Controls
+- **Y Button**: Toggle shooter
+- **B Button**: Toggle push cylinder
+- **L1 Button**: Toggle shooter + push cylinder together
+- **L2 Button**: Toggle intake cylinder
+
+## Key Functions
+
+### Navigation Functions
+
+#### `driveToXY(targetX, targetY, maxV, turnMaxV)`
+Drive to an absolute X, Y coordinate on the field.
+- Uses odometry for position tracking
+- Automatically corrects heading while driving
+- Smooth velocity profiles for acceleration/deceleration
+- Coordinate system: 0° = +Y (forward), 90° = +X (right)
+
+#### `turnToXY(targetX, targetY, turnMaxV)`
+Turn to face a specific X, Y coordinate.
+- Calculates target heading using `atan2`
+- PID control for precise turning
+- Settle detection to prevent overshoot
+
+#### `set_robot_pose(x, y, heading)`
+Initialize the robot's starting position and heading.
+- Resets odometry to specified values
+- Calibrates IMU offset for accurate heading
+
+#### `get_robot_pose()`
+Get the current robot position and heading.
+- Returns `RobotPose` structure with X, Y, and heading
+
+### Path Recording
+
+#### `recordPath()`
+Record a manual driving path for autonomous replay.
+- Drive manually using controller
+- Press **Button A** to save waypoints
+- Press **Button B** to finish recording
+- Path is saved to SD card and printed to console
+
+See [PATH_RECORDING_GUIDE.md](PATH_RECORDING_GUIDE.md) for detailed instructions.
+
+### Odometry
+
+The robot uses **sensor fusion** combining:
+- **Motor Encoders**: Track distance traveled by each side
+- **IMU (Inertial Sensor)**: Provides absolute heading
+- **Fusion Algorithm**: Combines both for accurate position tracking
+
+The odometry task runs continuously in the background, updating robot position every 10ms.
+
+## Autonomous Routines
+
+The robot includes multiple autonomous routines:
+
+- **Right_43()**: Right side autonomous, 4-5 rings
+- **Left_43()**: Left side autonomous, 4-5 rings
+- **Right_7()**: Right side autonomous, 7 rings
+- **Left_7()**: Left side autonomous, 7 rings
+- **Solo()**: Solo autonomous routine
+- **Skills()**: Skills competition routine
+- **blank1()**, **blank2()**, **blank3()**, **blank4()**: Test/blank routines
+
+## Setup Instructions
+
+### Prerequisites
+- VEXcode V5 or compatible C++ IDE
+- VEX V5 Brain and Controller
+- USB cable for programming
+
+### Building and Downloading
+
+1. **Clone the repository** to your local machine
+2. **Open the project** in VEXcode V5
+3. **Connect the VEX V5 Brain** to your computer via USB
+4. **Build the project** (should compile without errors)
+5. **Download to Brain** and test
+
+### First Time Setup
+
+1. **Calibrate IMU**: The IMU will auto-calibrate on startup
+2. **Set Starting Position**: Use `set_robot_pose(x, y, heading)` in your autonomous
+3. **Test Odometry**: Run `odom_test()` to verify position tracking
+4. **Tune PID**: See [PID_TUNING_GUIDE.md](PID_TUNING_GUIDE.md) for tuning instructions
+
+## Coordinate System
+
+The robot uses a standard coordinate system:
+- **0°** = +Y direction (forward)
+- **90°** = +X direction (right)
+- **180°** = -Y direction (backward)
+- **270°** = -X direction (left)
+
+All angles are measured in degrees (0-360).
+
+## Documentation
+
+- **[PATH_RECORDING_GUIDE.md](PATH_RECORDING_GUIDE.md)**: Complete guide for recording and using paths
+- **[PID_TUNING_GUIDE.md](PID_TUNING_GUIDE.md)**: Guide for tuning PID controllers (kH, kHi, kHd)
+
+## Troubleshooting
+
+### Odometry Issues
+- **Position drifts**: Check encoder connections and IMU calibration
+- **Wrong heading**: Verify IMU is calibrated and `set_robot_pose()` is called correctly
+- **X/Y incorrect**: Check coordinate system matches your field setup
+
+### Navigation Issues
+- **Robot doesn't stop**: Check stop conditions in `driveToXY()` - may need to adjust thresholds
+- **Overshoots target**: Reduce maximum velocity or tune PID gains
+- **Turns too much**: See PID_TUNING_GUIDE.md for tuning `turnToXY` PID
+
+### Compilation Issues
+- **Missing includes**: Ensure all header files are in the `include/` directory
+- **Linker errors**: Check that all source files are included in the build
+
+## Code Organization
+
+### Main Components
+
+- **`main.cpp`**: Core robot code including odometry, navigation, driver control, and dashboard
+- **`autons.cpp`**: All autonomous routine implementations
+- **`robot-config.cpp`**: Hardware device definitions (motors, sensors, pneumatics)
+- **`note.cpp`**: Background task for note/autonomous note functionality
+
+### Key Classes/Structures
+
+- **`RobotPose`**: Structure storing X, Y position and heading
+- **`Drive`**: JAR Template drive class for chassis control
+- **`Waypoint`**: Structure for path recording waypoints
+
+## Development Notes
+
+- **Odometry Task**: Runs continuously at 10ms intervals
+- **Sensor Fusion**: 3% IMU correction applied to encoder-based heading
+- **Velocity Profiles**: Cosine profiles for smooth acceleration/deceleration
+- **Stop Conditions**: Multiple safety checks prevent infinite loops
 
 ## Acknowledgements
 
-- **VEX Robotics** for their hardware and software support.
-- **HappyrobotTaipei** for their contributions to the development.
-- **Team 88168A** for their hard work, dedication, and passion for robotics.
-- Special thanks to **R.T.1.3**, **Lego Lau mo**, and **Teng Lau** for their support.
+- **VEX Robotics** for their hardware and software support
+- **JAR Template** for the drive and odometry library
+- **HappyrobotTaipei** for their contributions to the development
+- **Team 23083Z** for their hard work, dedication, and passion for robotics
+- Special thanks to **R.T.1.3**, **Lego Lau mo**, and **Teng Lau** for their support
+
+## License
+
+This project is for Team 23083Z's use in VEX Robotics competitions.
 
 ---
 
-Feel free to explore, modify, and contribute to this repository as we continue to enhance our robot’s capabilities for future competitions. Thank you for your interest in Team 88168A’s robotics project!
+**Last Updated**: 2025  
+**Team**: 23083Z  
+**Platform**: VEX V5
 
----
+Feel free to explore, modify, and contribute to this repository as we continue to enhance our robot's capabilities for future competitions!
