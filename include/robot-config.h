@@ -26,6 +26,7 @@ extern vex::vision Vision1;
 extern vex::vision Vision2;
 
 // ========== Digital Outputs (Pneumatics/Lights) ==========
+extern digital_out wing;
 extern digital_out redlight;
 extern digital_out whitelight;
 extern digital_out intakeCylander;

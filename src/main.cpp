@@ -65,7 +65,7 @@ static inline double wrap180(double a){ while(a>180)a-=360; while(a<-180)a+=360;
 static const double PI = 3.14159265358979323846;
 
 // Robot wheel parameters (CRITICAL: Must match Drive chassis!)
-// Wheels: 3.25 inch diameter  
+// Wheels: 3.25 inch diameter
 // Gearing: USER MEASURED - 360° motor rotation = 3.25*PI*0.75 inches
 // This means 1 motor rotation = 0.75 wheel rotations, so gear ratio = 0.75
 static const double WHEEL_DIAM_IN  = 3.25;
@@ -88,6 +88,19 @@ static const double TRACK_WIDTH_IN  = 10; // Distance between left and right whe
 
 // Global robot pose
 static RobotPose robot_pose;
+
+// Global odometry task handle (for task management)
+static vex::task* odometry_task_handle = nullptr;
+
+// Helper function to start odometry task (stops existing one first)
+static void start_odometry_task() {
+  if(odometry_task_handle != nullptr) {
+    odometry_task_handle->stop();
+    delete odometry_task_handle;
+    odometry_task_handle = nullptr;
+  }
+  odometry_task_handle = new vex::task(odometry_task);
+}
 
 static double deg_to_inches(double posDeg){
     double rotations = posDeg / 360.0;
@@ -353,6 +366,7 @@ void test_update_robot_pose() {
 }
 
 // Display robot pose on controller
+// Optimized for minimal blocking - caller controls frequency
 static void display_robot_pose(){
   Controller1.Screen.clearScreen();  // Clear screen first to prevent overlapping text
   Controller1.Screen.setCursor(1, 1);
@@ -360,15 +374,15 @@ static void display_robot_pose(){
   Controller1.Screen.setCursor(2, 1);
   Controller1.Screen.print("H:%.1f", robot_pose.heading);
   
-  // DEBUG: Show encoder values to diagnose X issue
+  // DEBUG: Show encoder values (less frequently)
   static int debug_count = 0;
-  if(debug_count % 25 == 0) {  // Update every 500ms
+  debug_count++;
+  if(debug_count % 5 == 0) {  // Update every 2.5 seconds
     double l_inches = get_left_inches();
     double r_inches = get_right_inches();
     Controller1.Screen.setCursor(3, 1);
     Controller1.Screen.print("L:%.1f R:%.1f", l_inches, r_inches);
   }
-  debug_count++;
 }
 
 // Display robot pose on brain
@@ -395,8 +409,18 @@ struct Waypoint {
 static std::vector<Waypoint> recordedWaypoints;
 static bool isRecording = false;
 static double totalDistanceTraveled = 0.0;
-static double prev_left_enc = 0.0;
-static double prev_right_enc = 0.0;
+// Encoder-based position tracking for recording
+static double start_left_encoder = 0.0;
+static double start_right_encoder = 0.0;
+static double start_x = 0.0;
+static double start_y = 0.0;
+static double start_heading_value = 0.0;
+// Current encoder-based position (updated incrementally)
+static double encoder_based_x = 0.0;
+static double encoder_based_y = 0.0;
+static double encoder_based_heading = 0.0;
+static double prev_record_left = 0.0;
+static double prev_record_right = 0.0;
 
 // Forward declarations for recording functions
 static void printRecordedPath();
@@ -410,9 +434,9 @@ int odometry_task() {
   
   while(true) {
     // ALWAYS update position (not just when recording!)
-    // Get current encoder positions
-    double curr_left = get_left_inches();
-    double curr_right = get_right_inches();
+      // Get current encoder positions
+      double curr_left = get_left_inches();
+      double curr_right = get_right_inches();
     
     // CRITICAL: Detect if encoders were reset (position jumps to near zero)
     // If encoders were reset, reset our prev values to avoid huge deltas
@@ -424,11 +448,11 @@ int odometry_task() {
       encoders_reset = false;
       continue;  // Skip this iteration to avoid huge delta
     }
-    
-    // Calculate deltas
-    double delta_left = curr_left - prev_left;
-    double delta_right = curr_right - prev_right;
-    
+      
+      // Calculate deltas
+      double delta_left = curr_left - prev_left;
+      double delta_right = curr_right - prev_right;
+      
     // Safety check: If delta is unreasonably large (>10 inches in one cycle), encoders were probably reset
     if(std::fabs(delta_left) > 10.0 || std::fabs(delta_right) > 10.0) {
       // Encoders were reset - reset our tracking
@@ -438,9 +462,9 @@ int odometry_task() {
     }
     
     // Update total dist_to_target traveled
-    double delta_dist = (std::fabs(delta_left) + std::fabs(delta_right)) / 2.0;
-    totalDistanceTraveled += delta_dist;
-    
+      double delta_dist = (std::fabs(delta_left) + std::fabs(delta_right)) / 2.0;
+      totalDistanceTraveled += delta_dist;
+      
     // PURE IMU heading with OFFSET (so set_robot_pose can reset the zero point)
     // Read raw IMU, subtract the offset set by set_robot_pose()
     double raw_imu = Inertial.heading();
@@ -450,34 +474,25 @@ int odometry_task() {
     while(adjusted_heading < 0.0) adjusted_heading += 360.0;
     while(adjusted_heading >= 360.0) adjusted_heading -= 360.0;
     
-    // DEBUG: Display on brain if heading is way off (for debugging)
+    // DEBUG: Only write to Brain.Screen when recording (reduces interference with driver control)
+    // Reduced frequency to prevent screen update conflicts
     static int debug_counter = 0;
     debug_counter++;
-    double abs_heading = (adjusted_heading > 180) ? (360 - adjusted_heading) : adjusted_heading;
-    if(debug_counter % 50 == 0 || abs_heading > 50) {
-      Brain.Screen.printAt(10, 220, "Odom: Raw=%.0f Off=%.0f Adj=%.0f  ", 
-                           raw_imu, imu_heading_offset, adjusted_heading);
+    if(isRecording && (debug_counter % 100 == 0)) {  // Only when recording, less frequently
+      double abs_heading = (adjusted_heading > 180) ? (360 - adjusted_heading) : adjusted_heading;
+      if(abs_heading > 50) {
+        Brain.Screen.printAt(10, 220, "Odom: Raw=%.0f Off=%.0f Adj=%.0f  ", 
+                             raw_imu, imu_heading_offset, adjusted_heading);
+      }
     }
-    
-    // DEBUG: If heading is around 90° and X is wrong, print debug info
-    static int debug_counter_odom = 0;
-    if((adjusted_heading > 85.0 && adjusted_heading < 95.0) && debug_counter_odom % 50 == 0) {
-      double delta_center = (delta_left + delta_right) / 2.0;
-      double x_delta = delta_center * std::sin(adjusted_heading * PI / 180.0);
-      Brain.Screen.printAt(10, 180, "H90: dL=%.2f dR=%.2f dC=%.2f", 
-                           delta_left, delta_right, delta_center);
-      Brain.Screen.printAt(10, 200, "H90: xD=%.2f yD=%.2f H=%.1f", 
-                           x_delta, delta_center * std::cos(adjusted_heading * PI / 180.0), adjusted_heading);
-    }
-    debug_counter_odom++;
     
     // Update robot position with adjusted heading
     update_robot_pose(delta_left, delta_right, adjusted_heading);
-    
-    // Store for next iteration
-    prev_left = curr_left;
-    prev_right = curr_right;
-    
+      
+      // Store for next iteration
+      prev_left = curr_left;
+      prev_right = curr_right;
+      
     // Display current pose on brain (only when recording)
     if(isRecording) {
       Brain.Screen.setPenColor(vex::white);
@@ -492,7 +507,7 @@ int odometry_task() {
 }
 
 // Start recording path
-static void startRecording(double start_x, double start_y, double start_heading) {
+static void startRecording(double start_x_val, double start_y_val, double start_heading_val) {
   // Reset everything
   recordedWaypoints.clear();
   totalDistanceTraveled = 0.0;
@@ -501,17 +516,34 @@ static void startRecording(double start_x, double start_y, double start_heading)
   L1.resetPosition(); L2.resetPosition(); L3.resetPosition();
   R1.resetPosition(); R2.resetPosition(); R3.resetPosition();
   
-  // Set starting position
-  set_robot_pose(start_x, start_y, start_heading);
+  // Wait a bit for encoders to reset
+  vex::wait(50, vex::msec);
+  
+  // Store starting encoder positions (these will be 0 after reset, but we store them anyway)
+  start_left_encoder = get_left_inches();
+  start_right_encoder = get_right_inches();
+  start_x = start_x_val;
+  start_y = start_y_val;
+  start_heading_value = start_heading_val;
+  
+  // Initialize encoder-based position tracking
+  encoder_based_x = start_x_val;
+  encoder_based_y = start_y_val;
+  encoder_based_heading = start_heading_val;
+  prev_record_left = start_left_encoder;
+  prev_record_right = start_right_encoder;
+  
+  // Set starting position (for odometry task if needed)
+  set_robot_pose(start_x_val, start_y_val, start_heading_val);
   
   // Record starting waypoint
-  recordedWaypoints.push_back(Waypoint(start_x, start_y, start_heading, 0.0));
+  recordedWaypoints.push_back(Waypoint(start_x_val, start_y_val, start_heading_val, 0.0));
   
   // Start recording
   isRecording = true;
   
-  // Start background odometry task
-  vex::task odometryTask(odometry_task);
+  // Start background odometry task (stop existing one if any)
+  start_odometry_task();
   
   Brain.Screen.clearScreen();
   Brain.Screen.setPenColor(vex::green);
@@ -522,14 +554,54 @@ static void startRecording(double start_x, double start_y, double start_heading)
 }
 
 // Record current position as waypoint
+// Calculates X, Y directly from motor encoder positions, not from odometry task
 static void recordWaypoint() {
   if(!isRecording) return;
   
-  // Get current pose
-  RobotPose pose = get_robot_pose();
+  // Get current encoder positions
+  double curr_left = get_left_inches();
+  double curr_right = get_right_inches();
   
-  // Save waypoint
-  recordedWaypoints.push_back(Waypoint(pose.x, pose.y, pose.heading, totalDistanceTraveled));
+  // Calculate encoder deltas since last recording
+  double delta_left = curr_left - prev_record_left;
+  double delta_right = curr_right - prev_record_right;
+  
+  // Get current heading from IMU (with offset applied)
+  double raw_imu = Inertial.heading();
+  double adjusted_heading = raw_imu - imu_heading_offset;
+  while(adjusted_heading < 0.0) adjusted_heading += 360.0;
+  while(adjusted_heading >= 360.0) adjusted_heading -= 360.0;
+  
+  // Update encoder-based position using the same logic as update_robot_pose
+  // Calculate average distance traveled (center of robot)
+  double delta_center = (delta_left + delta_right) / 2.0;
+  
+  // Detect in-place turning (wheels moving in opposite directions)
+  double abs_left = std::fabs(delta_left);
+  double abs_right = std::fabs(delta_right);
+  bool is_turning_in_place = (delta_left * delta_right < 0) &&  // Opposite signs
+                              (std::fabs(abs_left - abs_right) < std::max(abs_left, abs_right) * 0.3);
+  
+  // If turning in place, only update heading, not X/Y
+  if(is_turning_in_place && std::fabs(delta_center) < 0.1) {
+    encoder_based_heading = adjusted_heading;
+  } else {
+    // Normal movement: update X, Y position using current heading
+    double heading_rad = adjusted_heading * PI / 180.0;
+    encoder_based_x += delta_center * std::sin(heading_rad);
+    encoder_based_y += delta_center * std::cos(heading_rad);
+    encoder_based_heading = adjusted_heading;
+  }
+  
+  // Update total distance traveled
+  totalDistanceTraveled += (std::fabs(delta_left) + std::fabs(delta_right)) / 2.0;
+  
+  // Save waypoint using encoder-based position
+  recordedWaypoints.push_back(Waypoint(encoder_based_x, encoder_based_y, encoder_based_heading, totalDistanceTraveled));
+  
+  // Update previous encoder positions for next calculation
+  prev_record_left = curr_left;
+  prev_record_right = curr_right;
   
   // Feedback - RUMBLE with delay to ensure it executes
   Controller1.rumble(".");  // Single short pulse (more reliable)
@@ -537,7 +609,8 @@ static void recordWaypoint() {
   
   // Visual feedback
   Brain.Screen.setPenColor(vex::green);
-  Brain.Screen.printAt(10, 180, false, "Waypoint %d recorded!", (int)recordedWaypoints.size());
+  Brain.Screen.printAt(10, 180, false, "Waypoint %d: X=%.1f Y=%.1f H=%.1f", 
+                       (int)recordedWaypoints.size(), encoder_based_x, encoder_based_y, encoder_based_heading);
   Brain.Screen.setPenColor(vex::white);
 }
 
@@ -1321,9 +1394,9 @@ void driveToXY(double targetX, double targetY, double maxV, double turnMaxV) {
             Controller1.Screen.clearScreen();
             Controller1.Screen.setCursor(1, 1);
             Controller1.Screen.print("L1:%.0f L2:%.0f L3:%.0f", l1_pos, l2_pos, l3_pos);
-            Controller1.Screen.setCursor(2, 1);
+        Controller1.Screen.setCursor(2, 1);
             Controller1.Screen.print("R1:%.0f R2:%.0f R3:%.0f", r1_pos, r2_pos, r3_pos);
-            Controller1.Screen.setCursor(3, 1);
+        Controller1.Screen.setCursor(3, 1);
             Controller1.Screen.print("X:%.1f Y:%.1f H:%.0f", robot_pose.x, robot_pose.y, robot_pose.heading);
         }
         
@@ -1484,11 +1557,13 @@ void turnToXY(double targetX, double targetY, double turnMaxV) {
 
 int current_auton_selection = 8;
 bool auto_started = false;
-int air = 0;
-int temp = 0;
-int option = 0;
 bool airspace = false;
 bool ran_auton = false; // 是否已經跑auto模式
+
+void wingSwitch()
+{
+  wing = !wing;
+}
 
 void cylinderSwitch()
 {
@@ -1531,10 +1606,36 @@ bool shooterPushOn = false;
 
 void shooterPushSwitch() {
     shooterPushOn = !shooterPushOn;
-    shooter = shooterPushOn;  // assign to digital_out
-    pushCylinder = shooterPushOn;  // assign to digital_out
+    shooter = shooterPushOn; 
+    pushCylinder = shooterPushOn;  
 }
 
+int opticalLightTask() {
+  int lightPower = 100;
+  Optical.setLightPower(lightPower, percent);
+  while(true){
+    if(Controller1.ButtonUp.pressing()){
+      lightPower += 10;
+      if(lightPower >= 100) lightPower = 100;
+      Optical.setLightPower(lightPower, percent);
+      wait(50, msec);
+    }else if(Controller1.ButtonDown.pressing()){
+      lightPower -= 10;
+      if(lightPower <= 0) lightPower = 0;  
+      Optical.setLightPower(lightPower, percent);
+      wait(50, msec);
+    }
+    
+    if(lightPower > 0 && pushCylinder){
+      Optical.setLight(ledState::on);
+    }else{
+      Optical.setLight(ledState::off);
+    }
+    
+    wait(50, msec);
+  }
+  return 0;
+}
 
    
 
@@ -1850,7 +1951,7 @@ static inline void show_status_page(int selectedAuton) {
         }
       }
     }
-    
+
     // 觸控返回（點 tabs 區域只切換，不返回）
     if (Brain.Screen.pressing()) {
       int ty = Brain.Screen.yPosition();
@@ -2042,7 +2143,6 @@ void autonomous(void)
 
 
 
-
 int intakeControlTask()
 {
   intake.setMaxTorque(100, percent);
@@ -2050,30 +2150,34 @@ int intakeControlTask()
   while (true)
   {
     // 依優先權：L1 > L2 > R1 > R2
-    if (Controller1.ButtonR1.pressing())
+    if (Controller1.ButtonL1.pressing())
     {
-      // 原本功能保留：R1
+      // L1：只動 intakedown 反轉
       intake.spin(forward, 12, volt);
       intakedown.spin(forward, 12, volt);
     }
+    /*
+    else if (Controller1.ButtonL2.pressing())
+    {
+      // L2：只動 intakedown 正轉
+      intake.spin(reverse, 12, volt);
+      intakedown.spin(reverse, 9, volt);
+    }
+      */
+    else if (Controller1.ButtonR1.pressing())
+    {
+      // 原本功能保留：R1
+      intake.spin(reverse, 12, volt);
+      intakedown.spin(reverse, 12, volt);
+    }
+    /*
     else if (Controller1.ButtonR2.pressing())
     {
       // 原本功能保留：R2
       intake.spin(reverse, 12, volt);
       intakedown.spin(reverse, 12, volt);  
     }
-    else if (Controller1.ButtonRight.pressing())
-    {
-      // L1：只動 intakedown 反轉
-      intakedown.spin(forward, 12, volt);
-      intake.stop(coast);
-    }
-    else if (Controller1.ButtonDown.pressing())
-    {
-      // L2：只動 intakedown 正轉
-      intakedown.spin(reverse, 12, volt);
-      intake.stop(coast);
-    }
+    */
     else
     {
       // 停止
@@ -2091,40 +2195,31 @@ void usercontrol(void)
   L1.resetPosition(); L2.resetPosition(); L3.resetPosition();
   R1.resetPosition(); R2.resetPosition(); R3.resetPosition();
   
-  // Start odometry task and set initial pose for driver control
-  set_robot_pose(0, 0, 0);  // Reset pose to origin
-  vex::task odomTask(odometry_task);
-  wait(0.1, sec);  // Let odometry initialize
-  
-  if (!ran_auton)
-  {
-    // 若未跑過 auto
-  }
-  else
-  {
-    // 若已跑過 auto
+  // Stop odometry task from autonomous (not needed for driver control)
+  if(odometry_task_handle != nullptr) {
+    odometry_task_handle->stop();
+    delete odometry_task_handle;
+    odometry_task_handle = nullptr;
   }
   
-  // Start background tasks FIRST
+  // Start background tasks
   task notetask(autonoteTask, 0);
-  //---------------------------------------------------
   task intake(intakeControlTask, 0);
-  //-----------------------------------------------------
+  task opticalLight(opticalLightTask, 0);
   
   // Set up button callbacks
-  Controller1.ButtonY.pressed(shooterSwitch);
-  //-----------------------------------------------------
+  Controller1.ButtonRight.pressed(shooterSwitch);
+  Controller1.ButtonL2.pressed(wingSwitch);
   Controller1.ButtonB.pressed(pushSwitch);
-  //-----------------------------------------------------
-  Controller1.ButtonL1.pressed(shooterPushSwitch);
-  Controller1.ButtonL2.pressed(cylinderSwitch);
+
+  Controller1.ButtonY.pressed(shooterPushSwitch);
+  Controller1.ButtonR2.pressed(cylinderSwitch);
   
-  // Main driver control loop (AFTER all initialization)
+  // Main driver control loop - minimal for maximum responsiveness
   while (1)
   {
     chassis.control_tank(100); // 底盤控制
-    display_robot_pose();      // Display position on controller
-    wait(20, msec);
+  wait(20, msec);
   }
 }
 int main()
