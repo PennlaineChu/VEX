@@ -17,8 +17,8 @@ motor R3 = motor(PORT8, ratio6_1, false);
 inertial Inertial = inertial(PORT20);
 controller Controller1 = controller(primary);
 motor intake = motor(PORT6, ratio6_1, true);
-optical Optical = optical(PORT10);
-optical Optical_go = optical(PORT16);
+optical Optical = optical(PORT11);
+optical Optical_go = optical(PORT15);
 motor intakedown = motor(PORT5, ratio6_1, false);
 
 
@@ -28,8 +28,7 @@ digital_out intakeCylander = digital_out(Brain.ThreeWirePort.D);
 digital_out wing = digital_out(Brain.ThreeWirePort.C);
 digital_out redlight = digital_out(Brain.ThreeWirePort.H);
 digital_out whitelight = digital_out(Brain.ThreeWirePort.G);
-vex::vision Vision1 = vex::vision(vex::PORT13, 50);
-vex::vision Vision2 = vex::vision(vex::PORT15, 50);
+
 
 // 88
 //  VEXcode generated functions

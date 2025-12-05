@@ -197,12 +197,13 @@ void update_robot_pose(double delta_left, double delta_right, double current_hea
   double heading_rad = current_heading * PI / 180.0;
   
   // Update x and y position using current heading
-  // Coordinate system: 0° = +Y (forward), 90° = +X (right), 180° = -Y, 270° = -X
-  // At 0°: X = 0, Y = +1 → X = sin(0°) = 0, Y = cos(0°) = 1 ✓
-  // At 90°: X = +1, Y = 0 → X = sin(90°) = 1, Y = cos(90°) = 0 ✓
-  // CORRECT: X = +sin(heading), Y = +cos(heading)
+  // Coordinate system: Top-left origin (0,0), bottom-right (140.41, 140.41)
+  // 0° = -Y (up/forward), 90° = +X (right), 180° = +Y (down), 270° = -X (left)
+  // At 0°: X = 0, Y = -1 → X = sin(0°) = 0, Y = -cos(0°) = -1 ✓
+  // At 90°: X = +1, Y = 0 → X = sin(90°) = 1, Y = -cos(90°) = 0 ✓
+  // CORRECT: X = +sin(heading), Y = -cos(heading)
   robot_pose.x += delta_center * std::sin(heading_rad);
-  robot_pose.y += delta_center * std::cos(heading_rad);
+  robot_pose.y -= delta_center * std::cos(heading_rad);
   robot_pose.heading = current_heading;  // Store normalized heading
 }
 
@@ -259,13 +260,13 @@ void test_update_robot_pose() {
   // Save current pose
   RobotPose saved_pose = robot_pose;
   
-  // Test 1: Move forward 10" at 0° (0° = +Y forward)
+  // Test 1: Move up 10" at 0° (0° = -Y up/forward)
   robot_pose.x = 0.0;
   robot_pose.y = 0.0;
   robot_pose.heading = 0.0;
   update_robot_pose(10.0, 10.0, 0.0);  // Positive deltas = forward movement
   double expected_x_0 = 0.0;
-  double expected_y_0 = 10.0;
+  double expected_y_0 = -10.0;
   Controller1.Screen.clearScreen();
   Controller1.Screen.setCursor(1, 1);
   Controller1.Screen.print("T1: 0deg +10in");
@@ -291,13 +292,13 @@ void test_update_robot_pose() {
   Controller1.Screen.print("Exp: X:%.2f Y:%.2f", expected_x_90, expected_y_90);
   wait(2, sec);
   
-  // Test 3: Move backward 10" at 180°
+  // Test 3: Move down 10" at 180° (180° = +Y down)
   robot_pose.x = 0.0;
   robot_pose.y = 0.0;
   robot_pose.heading = 180.0;
   update_robot_pose(-10.0, -10.0, 180.0);  // Negative deltas = backward movement
   double expected_x_180 = 0.0;
-  double expected_y_180 = -10.0;
+  double expected_y_180 = 10.0;
   Controller1.Screen.clearScreen();
   Controller1.Screen.setCursor(1, 1);
   Controller1.Screen.print("T3: 180deg -10in");
@@ -307,11 +308,11 @@ void test_update_robot_pose() {
   Controller1.Screen.print("Exp: X:%.2f Y:%.2f", expected_x_180, expected_y_180);
   wait(2, sec);
   
-  // Test 4: Move left 10" at 270°
+  // Test 4: Move left 10" at 270° (270° = -X left)
   robot_pose.x = 0.0;
   robot_pose.y = 0.0;
   robot_pose.heading = 270.0;
-  update_robot_pose(-10.0, -10.0, 270.0);  // Negative deltas = backward movement (left at 270°)
+  update_robot_pose(-10.0, -10.0, 270.0);  // Negative deltas = backward movement
   double expected_x_270 = -10.0;
   double expected_y_270 = 0.0;
   Controller1.Screen.clearScreen();
@@ -323,13 +324,13 @@ void test_update_robot_pose() {
   Controller1.Screen.print("Exp: X:%.2f Y:%.2f", expected_x_270, expected_y_270);
   wait(2, sec);
   
-  // Test 5: Move at 45°
+  // Test 5: Move at 45° (diagonally up-right)
   robot_pose.x = 0.0;
   robot_pose.y = 0.0;
   robot_pose.heading = 45.0;
   update_robot_pose(10.0, 10.0, 45.0);  // Positive deltas = forward movement
   double expected_x_45 = 10.0 * std::sin(45.0 * PI / 180.0);
-  double expected_y_45 = 10.0 * std::cos(45.0 * PI / 180.0);
+  double expected_y_45 = -10.0 * std::cos(45.0 * PI / 180.0);
   Controller1.Screen.clearScreen();
   Controller1.Screen.setCursor(1, 1);
   Controller1.Screen.print("T5: 45deg +10in");
@@ -587,9 +588,11 @@ static void recordWaypoint() {
     encoder_based_heading = adjusted_heading;
   } else {
     // Normal movement: update X, Y position using current heading
+    // Coordinate system: Top-left origin (0,0), bottom-right (140.41, 140.41)
+    // 0° = -Y (up/forward), 90° = +X (right), 180° = +Y (down), 270° = -X (left)
     double heading_rad = adjusted_heading * PI / 180.0;
     encoder_based_x += delta_center * std::sin(heading_rad);
-    encoder_based_y += delta_center * std::cos(heading_rad);
+    encoder_based_y -= delta_center * std::cos(heading_rad);
     encoder_based_heading = adjusted_heading;
   }
   
@@ -999,417 +1002,31 @@ void cos_move_distance_fused(double distance_in, double angle_deg, double turn_m
 
 // ========== DRIVE TO ABSOLUTE X,Y COORDINATES ==========
 // Navigate to a specific point on the field with sensor fusion
-// Uses your coordinate system: 0° = forward (+Y), 90° = right (+X)
+// Coordinate system: Top-left origin (0,0), bottom-right (140.41, 140.41)
+// 0° = -Y (up/forward), 90° = +X (right), 180° = +Y (down), 270° = -X (left)
+// Strategy: First turn to face target, then drive straight to prevent drift
 void driveToXY(double targetX, double targetY, double maxV, double turnMaxV) {
-    // Reset ALL motor positions (used for dist_to_target tracking)
-    L1.resetPosition(); L2.resetPosition(); L3.resetPosition();
-    R1.resetPosition(); R2.resetPosition(); R3.resetPosition();
+    // ========== STEP 1: Calculate target heading (theta) ==========
+    double dx = targetX - robot_pose.x;
+    double dy = targetY - robot_pose.y;
+    double targetHeading = std::atan2(dx, -dy) * 180.0 / PI;
     
-    // CRITICAL: Wait a bit after resetting encoders to let odometry task detect the reset
-    // The odometry task will detect the reset and update its prev_left/prev_right values
-    vex::wait(50, vex::msec);
+    // Normalize to 0-360
+    while(targetHeading < 0.0) targetHeading += 360.0;
+    while(targetHeading >= 360.0) targetHeading -= 360.0;
+        
+    // ========== STEP 2: Turn to face target heading ==========
+    chassis.turn_to_angle(targetHeading);
+    vex::wait(50, vex::msec);  // Small delay after turning
     
-    L1.setStopping(vex::brake); L2.setStopping(vex::brake); L3.setStopping(vex::brake);
-    R1.setStopping(vex::brake); R2.setStopping(vex::brake); R3.setStopping(vex::brake);
+    // ========== STEP 3: Drive straight to target ==========
+    // Calculate distance to target
+    double distance = std::sqrt(dx * dx + dy * dy);
     
-    const double settle_in = 0.5;  // inches (reduced - only settle when VERY close)
-    const int dt_ms = 10;
-    double lastDistance = 999.0;
-    int settle_timer = 0;
+    // Use chassis.drive_distance to drive straight while maintaining heading
+    // This will maintain the targetHeading we just turned to
+    chassis.drive_distance(distance, targetHeading, maxV, turnMaxV);
     
-    // Track minimum distance for overshoot detection (resets each call)
-    double min_distance = 999.0;
-    
-    // Track position for "no movement" detection
-    double prev_x = robot_pose.x;
-    double prev_y = robot_pose.y;
-    int no_movement_timer = 0;
-    const double MIN_MOVEMENT_THRESHOLD = 0.05;  // inches - must move at least 0.05" per 200ms
-    
-    // CRITICAL: Use robot_pose.heading directly (already adjusted by odometry task)
-    // Don't recalculate from IMU here - trust the odometry!
-    // The odometry_task is continuously updating robot_pose in the background.
-    double fused_heading = robot_pose.heading;
-    
-    // PID state (balanced correction - not too aggressive)
-    double h_i = 0.0;
-    const double kH = 0.2;  // Increased to correct heading faster
-    const double kHi = 0.004;  // Increased to correct persistent errors
-    const double i_cap = turnMaxV * 0.5;
-    
-    // Calculate initial total dist_to_target
-    double dx_initial = targetX - robot_pose.x;
-    double dy_initial = targetY - robot_pose.y;
-    double totalDistance = std::sqrt(dx_initial * dx_initial + dy_initial * dy_initial);
-    
-    // Initialize min_distance
-    min_distance = totalDistance;
-    
-    // Store starting position for "ran away" check (relative to start, not absolute)
-    double start_x = robot_pose.x;
-    double start_y = robot_pose.y;
-    
-    // DEBUG: Show initial state
-    Controller1.Screen.clearScreen();
-    Controller1.Screen.setCursor(1, 1);
-    Controller1.Screen.print("To:(%.0f,%.0f)", targetX, targetY);
-    Controller1.Screen.setCursor(2, 1);
-    Controller1.Screen.print("Dist:%.1f", totalDistance);
-    
-    int loop_count = 0;
-    const int MAX_LOOPS = 2000;  // Safety timeout: 20 seconds (increased from 5s)
-    const double MAX_HEADING_ERROR = 60.0;  // Stop if heading is >60° off (back to normal)
-    
-    while(true) {
-        loop_count++;
-        
-        // ========== UPDATE POSITION ==========
-        // CRITICAL: DON'T recalculate heading here!
-        // The odometry_task is ALREADY updating robot_pose with adjusted heading.
-        // Just read the current heading from robot_pose!
-        fused_heading = robot_pose.heading;
-        
-        // ========== CALCULATE TARGET ==========
-        double dx = targetX - robot_pose.x;
-        double dy = targetY - robot_pose.y;
-        double dist_to_target = std::sqrt(dx * dx + dy * dy);
-        
-        // DEBUG: If this is the third driveToXY call and X is wrong, show debug info
-        static int driveToXY_call_count = 0;
-        if(loop_count == 1) {
-            driveToXY_call_count++;
-        }
-        if(driveToXY_call_count == 3 && loop_count % 50 == 0) {
-            Brain.Screen.printAt(10, 160, "CALL3: X=%.2f Y=%.2f dx=%.2f dy=%.2f", 
-                                 robot_pose.x, robot_pose.y, dx, dy);
-        }
-        
-        // ========== DEBUG: Check encoder deltas and X/Y updates ==========
-        // Get current encoder values to see what's happening
-        static double debug_prev_left = 0.0;
-        static double debug_prev_right = 0.0;
-        if(loop_count == 1) {
-            debug_prev_left = get_left_inches();
-            debug_prev_right = get_right_inches();
-        }
-        double debug_curr_left = get_left_inches();
-        double debug_curr_right = get_right_inches();
-        double debug_delta_left = debug_curr_left - debug_prev_left;
-        double debug_delta_right = debug_curr_right - debug_prev_right;
-        double debug_delta_center = (debug_delta_left + debug_delta_right) / 2.0;
-        double debug_x_delta = debug_delta_center * std::sin(fused_heading * PI / 180.0);
-        double debug_y_delta = debug_delta_center * std::cos(fused_heading * PI / 180.0);
-        
-        // Show debug info on brain screen every 50 loops (500ms)
-        if(loop_count % 50 == 0) {
-            Brain.Screen.printAt(10, 180, "ENC: dL=%.3f dR=%.3f dC=%.3f", 
-                                 debug_delta_left, debug_delta_right, debug_delta_center);
-            Brain.Screen.printAt(10, 200, "XY: dX=%.3f dY=%.3f H=%.1f", 
-                                 debug_x_delta, debug_y_delta, fused_heading);
-            Brain.Screen.printAt(10, 220, "POS: X=%.2f Y=%.2f", robot_pose.x, robot_pose.y);
-        }
-        debug_prev_left = debug_curr_left;
-        debug_prev_right = debug_curr_right;
-        
-        // ========== NO MOVEMENT DETECTION ==========
-        // Check if robot is actually moving (position changing)
-        double dx_movement = robot_pose.x - prev_x;
-        double dy_movement = robot_pose.y - prev_y;
-        double movement_distance = std::sqrt(dx_movement * dx_movement + dy_movement * dy_movement);
-        
-        // Check every 200ms (20 loops) if robot is moving
-        if(loop_count % 20 == 0) {
-            if(movement_distance < MIN_MOVEMENT_THRESHOLD && dist_to_target > 1.0) {
-                // Robot not moving and still far from target
-                no_movement_timer += 200;  // Add 200ms
-                if(no_movement_timer >= 500) {  // Not moving for 500ms
-                    set_drive_volt(0, 0);
-                    Controller1.Screen.clearScreen();
-                    Controller1.Screen.setCursor(1, 1);
-                    Controller1.Screen.print("STOP: NO MOVE");
-                    Controller1.Screen.setCursor(2, 1);
-                    Controller1.Screen.print("D:%.2f X:%.1f Y:%.1f", dist_to_target, robot_pose.x, robot_pose.y);
-                    vex::wait(500, vex::msec);
-                    break;
-                }
-            } else {
-                no_movement_timer = 0;  // Reset timer if moving
-            }
-            prev_x = robot_pose.x;
-            prev_y = robot_pose.y;
-        }
-        
-        // SAFETY 1: Timeout (check after calculating distance)
-        if(loop_count > MAX_LOOPS) {
-            set_drive_volt(0, 0);
-            Controller1.Screen.clearScreen();
-            Controller1.Screen.setCursor(1, 1);
-            Controller1.Screen.print("STOP: TIMEOUT");
-            Controller1.Screen.setCursor(2, 1);
-            Controller1.Screen.print("20s limit D:%.1f", dist_to_target);
-            Brain.Screen.printAt(10, 140, "STOPPED: TIMEOUT after 20s at D=%.2f", dist_to_target);
-            vex::wait(500, vex::msec);
-            break;
-        }
-        
-        // SAFETY 2: Check if robot has moved too far from where THIS driveToXY started
-        // (relative check, not absolute from origin)
-        // DISABLED: This check is too sensitive and triggers during normal operation
-        // The robot can legitimately move far from origin during autonomous navigation
-        // If needed, re-enable with much more lenient thresholds
-        /*
-        double dx_from_start = robot_pose.x - start_x;
-        double dy_from_start = robot_pose.y - start_y;
-        double dist_from_start = std::sqrt(dx_from_start * dx_from_start + dy_from_start * dy_from_start);
-        // Only check if we've moved more than 2x the intended distance (very lenient)
-        if(dist_from_start > totalDistance * 2.0 && totalDistance > 10.0) {
-            set_drive_volt(0, 0);
-            Controller1.Screen.clearScreen();
-            Controller1.Screen.setCursor(1, 1);
-            Controller1.Screen.print("STOP: RAN AWAY");
-            Controller1.Screen.setCursor(2, 1);
-            Controller1.Screen.print("Dist: %.0f in", dist_from_start);
-            Brain.Screen.printAt(10, 140, "STOPPED: RAN AWAY dist=%.1f", dist_from_start);
-            vex::wait(500, vex::msec);
-            break;
-        }
-        */
-        
-        // ========== OVERSHOOT DETECTION ==========
-        // Stop if we've passed the target (distance is increasing)
-        // Track minimum distance reached during this driveToXY call
-        if(dist_to_target < min_distance) {
-            min_distance = dist_to_target;  // Update minimum distance
-        }
-        // If we were close (< 3") and now getting farther by 0.3", we've overshot
-        if(min_distance < 3.0 && dist_to_target > min_distance + 0.3) {
-            set_drive_volt(0, 0);
-            Controller1.Screen.clearScreen();
-            Controller1.Screen.setCursor(1, 1);
-            Controller1.Screen.print("STOP: OVERSHOOT");
-            Controller1.Screen.setCursor(2, 1);
-            Controller1.Screen.print("Min:%.2f Now:%.2f", min_distance, dist_to_target);
-            Controller1.Screen.setCursor(3, 1);
-            Controller1.Screen.print("X:%.1f Y:%.1f", robot_pose.x, robot_pose.y);
-            vex::wait(500, vex::msec);
-            break;
-        }
-        
-        // ========== SETTLE DETECTION ==========
-        // Stop if very close and stable
-        if(dist_to_target < settle_in && std::fabs(dist_to_target - lastDistance) < 0.02) {
-            settle_timer += dt_ms;
-            if(settle_timer >= 150) {
-                set_drive_volt(0, 0);
-                Controller1.Screen.clearScreen();
-                Controller1.Screen.setCursor(1, 1);
-                Controller1.Screen.print("STOP: SETTLED");
-                Controller1.Screen.setCursor(2, 1);
-                Controller1.Screen.print("D: %.2f", dist_to_target);
-                vex::wait(500, vex::msec);
-                break;
-            }
-        } else {
-            settle_timer = 0;
-        }
-        lastDistance = dist_to_target;
-        
-        // ========== HEADING TO TARGET ==========
-        // Coordinate system: 0° = +Y (forward), 90° = +X (right), 180° = -Y, 270° = -X
-        // atan2(dx, dy) gives angle where 0° = +Y, 90° = +X
-        // FIXED: Changed from atan2(dy, dx) to atan2(dx, dy)
-        double targetHeading = std::atan2(dx, dy) * 180.0 / PI;
-        
-        // Normalize to 0-360
-        while(targetHeading < 0.0) targetHeading += 360.0;
-        while(targetHeading >= 360.0) targetHeading -= 360.0;
-        
-        double headingError = wrap180(targetHeading - fused_heading);
-        
-        // DEBUG: Print target and current heading (brain screen only, controller shows X Y H)
-        static int debug_counter_drive = 0;
-        if(debug_counter_drive % 30 == 0) {  // Update every 300ms
-            Brain.Screen.printAt(10, 100, "Target H: %.1f  Now H: %.1f  Err: %.1f", 
-                                 targetHeading, fused_heading, headingError);
-        }
-        debug_counter_drive++;
-        
-        // SAFETY 3: Stop if heading error is too large (robot facing wrong way)
-        // DISABLED: Allow robot to move even with large heading errors - it will correct as it moves
-        /*
-        if(std::fabs(headingError) > MAX_HEADING_ERROR && dist_to_target > 5.0) {
-            set_drive_volt(0, 0);
-            Controller1.Screen.clearScreen();
-            Controller1.Screen.setCursor(1, 1);
-            Controller1.Screen.print("STOP: HEADING");
-            Controller1.Screen.setCursor(2, 1);
-            Controller1.Screen.print("Err: %.0f deg", headingError);
-            Brain.Screen.printAt(10, 140, "STOPPED: HEADING ERROR %.1f deg", headingError);
-            vex::wait(500, vex::msec);  // 0.5 seconds
-            break;
-        }
-        */
-        
-        // ========== PID CONTROL ==========
-        // Very small deadband - correct even tiny errors to prevent drift
-        double effective_error = headingError;
-        if(std::fabs(headingError) < 0.1) {
-            effective_error = 0.0;  // Only ignore very tiny errors < 0.1° to prevent jitter
-        }
-        
-        h_i += effective_error * (dt_ms / 1000.0) * kHi;
-        h_i = clampd(h_i, -i_cap, i_cap);
-        double turnV = clampd(kH * effective_error + h_i, -turnMaxV, turnMaxV);
-        
-        // CRITICAL: Apply minimum turn voltage when there's ANY heading error to ensure correction throughout!
-        // This ensures heading is corrected during the entire movement, not just at the end
-        if(std::fabs(headingError) > 0.1) {
-            double min_voltage = 0.15;  // Base minimum for any error
-            if(std::fabs(headingError) > 5.0) {
-                min_voltage = 0.4;  // Strong correction for large errors
-            } else if(std::fabs(headingError) > 2.0) {
-                min_voltage = 0.25;  // Medium correction for medium errors
-            } else if(std::fabs(headingError) > 0.5) {
-                min_voltage = 0.2;  // Small correction for small errors
-            }
-            // Always apply minimum to ensure continuous correction
-            if(std::fabs(turnV) < min_voltage) {
-                turnV = (headingError > 0) ? min_voltage : -min_voltage;
-            }
-        }
-        
-        // DEBUG: Show heading error on controller
-        if(loop_count % 50 == 0) {
-            Controller1.Screen.setCursor(3, 1);
-            Controller1.Screen.print("HE:%.0f T:%.1f", headingError, turnV);
-        }
-        
-        // CRITICAL: Reduce turn power as we approach target to prevent end-spin!
-        // BUT: Don't scale down if heading error is significant (>3°) - need correction throughout!
-        // Only scale when very close AND heading is already aligned
-        if(dist_to_target < 1.5 && std::fabs(headingError) < 3.0) {
-            double turn_scale = dist_to_target / 1.5;  // 0.0 at target, 1.0 at 1.5" away
-            turn_scale = std::max(0.5, turn_scale);  // Minimum 50% turn power
-            turnV *= turn_scale;
-        }
-        
-        // Re-apply minimum after scaling to ensure correction happens even when close
-        // This is critical - ensures heading correction continues throughout movement
-        if(std::fabs(headingError) > 0.1) {
-            double min_voltage = 0.15;
-            if(std::fabs(headingError) > 2.0) {
-                min_voltage = 0.25;
-            } else if(std::fabs(headingError) > 0.5) {
-                min_voltage = 0.2;
-            }
-            if(std::fabs(turnV) < min_voltage) {
-                turnV = (headingError > 0) ? min_voltage : -min_voltage;
-            }
-        }
-        
-        // ========== VELOCITY PROFILE ==========
-        double traveled = totalDistance - dist_to_target;
-        double driveV = cosineVelocity(traveled, totalDistance, maxV);
-        
-        // CRITICAL: Force minimum velocity to ensure robot moves
-        if(dist_to_target > 1.0) {
-            driveV = std::max(driveV, 2.0);  // Minimum 2V when far from target
-        }
-        
-        // Less aggressive speed reduction - only when very close
-        // Start reducing speed at 2" away (was 5")
-        if(dist_to_target < 2.0) {
-            // Linear reduction instead of quadratic - less aggressive
-            double close_scale = dist_to_target / 2.0;
-            close_scale = std::max(0.3, close_scale);  // Minimum 30% speed (was 10%)
-            driveV *= close_scale;
-        }
-        
-        // Only cap when extremely close
-        if(dist_to_target < 1.0) {
-            driveV = std::min(driveV, 1.0);  // Cap at 1.0V when < 1" away
-        }
-        if(dist_to_target < 0.4) {
-            driveV = std::min(driveV, 0.4);  // Cap at 0.4V when < 0.4" away
-        }
-        
-        // Scale drive by heading alignment (LESS aggressive to prevent premature stopping)
-        // Only reduce speed significantly if heading is WAY off (>45°)
-        double heading_scale = std::cos(headingError * PI / 180.0);
-        heading_scale = 0.6 + 0.4 * std::fabs(heading_scale);  // Scale from 60-100% instead of 0-100%
-        driveV *= heading_scale;
-        
-        // Stop if velocity is 0 and close to target
-        if(driveV < 0.05 && dist_to_target < 0.2) {
-            set_drive_volt(0, 0);
-            Controller1.Screen.clearScreen();
-            Controller1.Screen.setCursor(1, 1);
-            Controller1.Screen.print("STOP: VEL=0");
-            Controller1.Screen.setCursor(2, 1);
-            Controller1.Screen.print("D: %.2f", dist_to_target);
-            vex::wait(500, vex::msec);
-            break;
-        }
-        
-        // Brain screen updates less frequently for performance
-        if(loop_count % 30 == 0) {
-            double debug_raw_imu = Inertial.heading();
-            // Calculate turn_scale for display (repeat calculation from above)
-            double display_turn_scale = (dist_to_target < 2.0) ? std::max(0.5, dist_to_target / 2.0) : 1.0;
-            
-            // Get motor positions
-            double l1_pos = L1.position(vex::deg);
-            double l2_pos = L2.position(vex::deg);
-            double l3_pos = L3.position(vex::deg);
-            double r1_pos = R1.position(vex::deg);
-            double r2_pos = R2.position(vex::deg);
-            double r3_pos = R3.position(vex::deg);
-            
-            Brain.Screen.clearScreen();
-            Brain.Screen.printAt(10, 20, "L1:%.0f L2:%.0f L3:%.0f", l1_pos, l2_pos, l3_pos);
-            Brain.Screen.printAt(10, 40, "R1:%.0f R2:%.0f R3:%.0f", r1_pos, r2_pos, r3_pos);
-            Brain.Screen.printAt(10, 60, "X:%.2f Y:%.2f H:%.1f", robot_pose.x, robot_pose.y, robot_pose.heading);
-            Brain.Screen.printAt(10, 80, "Dist:%.2f DriveV:%.2f TurnV:%.2f", dist_to_target, driveV, turnV);
-            Brain.Screen.printAt(10, 100, "Target: (%.1f, %.1f)  HErr:%.1f", targetX, targetY, headingError);
-            Brain.Screen.printAt(10, 120, "dx:%.2f dy:%.2f MinD:%.2f", dx, dy, min_distance);
-            Brain.Screen.printAt(10, 140, "Settle: %dms  Loop: %d", settle_timer, loop_count);
-        }
-        
-        // ========== MOTOR OUTPUTS ==========
-        // Trim adjustment: If robot consistently drifts left, reduce left side slightly
-        // (User reported left drift, so we'll add a small trim to compensate)
-        const double TRIM = 0.0;  // Adjust this if needed: positive = left faster, negative = right faster
-        double leftV = clampd(driveV + turnV - TRIM, -maxV, maxV);
-        double rightV = clampd(driveV - turnV + TRIM, -maxV, maxV);
-        
-        // DEBUG: Show motor positions and robot pose on controller (update less frequently)
-        if(loop_count % 30 == 0) {  // Update every 300ms so you can read it
-            double l1_pos = L1.position(vex::deg);
-            double l2_pos = L2.position(vex::deg);
-            double l3_pos = L3.position(vex::deg);
-            double r1_pos = R1.position(vex::deg);
-            double r2_pos = R2.position(vex::deg);
-            double r3_pos = R3.position(vex::deg);
-            
-            Controller1.Screen.clearScreen();
-            Controller1.Screen.setCursor(1, 1);
-            Controller1.Screen.print("L1:%.0f L2:%.0f L3:%.0f", l1_pos, l2_pos, l3_pos);
-        Controller1.Screen.setCursor(2, 1);
-            Controller1.Screen.print("R1:%.0f R2:%.0f R3:%.0f", r1_pos, r2_pos, r3_pos);
-        Controller1.Screen.setCursor(3, 1);
-            Controller1.Screen.print("X:%.1f Y:%.1f H:%.0f", robot_pose.x, robot_pose.y, robot_pose.heading);
-        }
-        
-        set_drive_volt(leftV, rightV);
-        
-        vex::wait(dt_ms, vex::msec);
-    }
-    
-    // Loop exited - one of the break conditions was hit
-    // Final diagnostics are already shown by the break condition code above
-    set_drive_volt(0, 0);
-    L1.stop(); L2.stop(); L3.stop();
-    R1.stop(); R2.stop(); R3.stop();
 }
 
 // ========== TURN TO FACE X,Y COORDINATES ==========
@@ -1452,10 +1069,10 @@ void turnToXY(double targetX, double targetY, double turnMaxV) {
         // Calculate target heading (same as driveToXY)
         double dx = targetX - robot_pose.x;
         double dy = targetY - robot_pose.y;
-        // Coordinate system: 0° = +Y (forward), 90° = +X (right), 180° = -Y, 270° = -X
-        // atan2(dx, dy) gives angle where 0° = +Y, 90° = +X
-        // FIXED: Changed from atan2(dy, dx) to atan2(dx, dy) to match driveToXY
-        double targetHeading = std::atan2(dx, dy) * 180.0 / PI;
+        // Coordinate system: Top-left origin (0,0), bottom-right (140.41, 140.41)
+        // 0° = -Y (up/forward), 90° = +X (right), 180° = +Y (down), 270° = -X (left)
+        // Convert from atan2 (0°=+X, 90°=+Y) to our system (0°=-Y, 90°=+X)
+        double targetHeading = std::atan2(dx, -dy) * 180.0 / PI;
         
         // Normalize targetHeading to 0-360
         while(targetHeading < 0.0) targetHeading += 360.0;
@@ -1555,7 +1172,7 @@ void turnToXY(double targetX, double targetY, double turnMaxV) {
     R1.stop(); R2.stop(); R3.stop();
 }
 
-int current_auton_selection = 8;
+int current_auton_selection = 0;
 bool auto_started = false;
 bool airspace = false;
 bool ran_auton = false; // 是否已經跑auto模式
@@ -2085,6 +1702,10 @@ void pre_auton(void)
 
 void autonomous(void)
 {
+  // CRITICAL: Start odometry task to continuously track robot position
+  // This runs in the background and updates robot_pose.x, robot_pose.y, robot_pose.heading
+  // Works with ANY movement function (driveToXY, chassis.drive_distance, etc.)
+  start_odometry_task();
   
   auto_started = true;
   ran_auton = true;

@@ -34,204 +34,81 @@ int info()
 
 void Right_43()
 {
-  // ========== CORRECTED COORDINATE MAP ==========
-  // Field: 140.5" × 140.5"
-  // Robot: 12.5" wide × 16" long (inertia at center: 6.25" from sides, 8" from front/back)
-  // START: (22, 22.5) - Actual starting position on field (robot center)
-  // Loader: (37.5, 8.25) - Loader position
-  // Coordinate system: 0° = +Y (forward), 90° = +X (right), 180° = -Y, 270° = -X
+  // ========== CORRECT COORDINATE MAP ==========
+  // Field: 140.41" × 140.41" (0,0) is at top left corner, (140.41, 140.41) is at bottom right
+  // Robot: 12.5" wide × 18" long (inertia at center: 6.25" from sides, 9" from front/back)
+  // START: (88, 118.3) - Actual starting position on field (robot center)
+  // Coordinate system: Top-left origin (0,0), 0° = -Y (up/forward), 90° = +X (right), 180° = +Y (down), 270° = -X (left)
   
-  // ========== All coordinates for XY navigation ==========
-  const double START_X = 22.0, START_Y = 22.5;
   
-  // Phase 1: Drive to first position
-  const double FIRST_POS_X = 41.05, FIRST_POS_Y = 33.5;
-  
-  // Phase 2: Approach 3 blocks (318° = -42° from +Y axis)
-  const double BLOCKS_3_APPROACH_X = 38.67, BLOCKS_3_APPROACH_Y = 36.61; // 4" before blocks at 318°
-  const double BLOCKS_3_X = 36.36, BLOCKS_3_Y = 38.70;                   // 3 blocks location
-  
-  // Phase 3: Score at middle goal
-  const double MIDDLE_GOAL_APPROACH_X = 22.33, MIDDLE_GOAL_APPROACH_Y = 54.15; // 5" before goal
-  const double MIDDLE_GOAL_X = 19.63, MIDDLE_GOAL_Y = 57.28;                   // Middle goal
-  
-  // Phase 4: Back up from goal and go to loader
-  const double AFTER_BACKUP_X = 24.98, AFTER_BACKUP_Y = 51.34; // 8" backup from goal
-  const double LOADER_X = 37.5, LOADER_Y = 8.25;               // Loader position
-  
-  // Phase 5: Load 3 blocks (push backward into loader at 178°)
-  const double LOADER_ENTRY_X = 37.5, LOADER_ENTRY_Y = 16.25;  // 8" in front of loader
-  const double LOADER_DEEP_X = 37.5, LOADER_DEEP_Y = 8.25;     // Deep in loader (29" total push)
-  const double AFTER_BACKUP2_X = 37.5, AFTER_BACKUP2_Y = 15.25; // 7" backed out
-  
-  // Phase 6: Score at goal
-  const double GOAL_APPROACH_X = 37.5, GOAL_APPROACH_Y = 27.25; // 5" before goal
-  const double GOAL_X = 37.5, GOAL_Y = 32.25;                   // Final goal
-  
-  // Initialize position tracking with actual start position
-  set_robot_pose(START_X, START_Y, 0.0);
-  
-  // ========== PHASE 1: Drive to first position ==========
-  intakedown.spin(forward, 12, volt);
-  driveToXY(FIRST_POS_X, FIRST_POS_Y, 8.0, 4.0);
+  // Set initial pose: X, Y, and heading (0° = up/forward, 90° = right, 180° = down, 270° = left)
+  set_robot_pose(86, 116.3, 0.0); // Robot starts facing up/forward (0°)
+  intakedown.spin(forward, 10, volt);
+  // ========== PHASE 1: Drive to intake position ==========
+  // driveToXY automatically calculates and turns to face the target
   wait(0.05, sec);
-  
-  // ========== PHASE 2: Approach and intake 3 blocks ==========
-  driveToXY(BLOCKS_3_APPROACH_X, BLOCKS_3_APPROACH_Y, 4.0, 4.0); // Approach slowly
+  driveToXY(103, 105, 8.0, 6.0);
   wait(0.05, sec);
-  driveToXY(BLOCKS_3_X, BLOCKS_3_Y, 4.0, 4.0); // Drive onto blocks
+  intake.spin(forward, 10, volt);
+
+  // ========== PHASE 2: Score 3 blocks ==========
+  chassis.turn_to_angle(315);
   wait(0.05, sec);
-  
-  // ========== PHASE 3: Score at middle goal ==========
-  driveToXY(MIDDLE_GOAL_APPROACH_X, MIDDLE_GOAL_APPROACH_Y, 8.0, 4.0); // Approach goal
+  driveToXY(93.5, 93.5, 8.0, 6.0); // Approach slowly
+  wait(0.2, sec);
+  chassis.drive_distance(15, 315, 8.0, 6.0); // Drive to low goal
+  intakedown.spin(reverse, 6, volt);
+  intake.spin(reverse, 10, volt);
   wait(0.05, sec);
-  intake.spin(reverse, 12, volt);
-  driveToXY(MIDDLE_GOAL_X, MIDDLE_GOAL_Y, 6.0, 4.0); // Push into goal
-  intakedown.spin(reverse, 9, volt);
-  wait(1.5, sec); // Outtake 3 blocks onto goal
+  chassis.drive_distance(4, 315, 6, 6);
+  wait(0.5, sec); //Score blocks 
+  intakedown.stop();
+  intake.stop();  
+  // ========== PHASE 3: back up and load ==========
+  chassis.drive_distance(-10, 315, 8, 6); // Backup
+  wait(0.05, sec);
   intake.stop();
+  chassis.turn_to_angle(135); // Face loader
   wait(0.05, sec);
-  
-  // ========== PHASE 4: Back up and go to loader ==========
-  driveToXY(AFTER_BACKUP_X, AFTER_BACKUP_Y, 4.0, 4.0); // Back away from goal
-  wait(0.05, sec);
-  pushCylinder.set(false);
-  wait(0.05, sec);
-  
-  driveToXY(LOADER_ENTRY_X, LOADER_ENTRY_Y, 10.0, 4.0); // Navigate to loader entry
-  wait(0.05, sec);
-  intakedown.spin(forward, 12, volt);
-  wait(0.05, sec);
-  
-  // ========== PHASE 5: Load 3 blocks at loader ==========
-  // Turn to face loader (backward = 180°)
-  turnToXY(LOADER_DEEP_X, LOADER_DEEP_Y, 4.0);
-  wait(0.05, sec);
-  shooter.set(true);
-  wait(0.05, sec);
-  
-  // Drive backward into loader (driveToXY will go backward since target is behind)
-  driveToXY(LOADER_DEEP_X, LOADER_DEEP_Y, 10.0, 4.0);
-  wait(0.05, sec);
+  driveToXY(115, 110, 8.0, 6.0); //to loader
+  chassis.turn_to_angle(180); // Prepare to load
   intakeCylander.set(true);
-  wait(0.05, sec);
-  
-  // Load 3 blocks
-  intake.spin(forward, 12, volt);
-  wait(0.5, sec);
+  intakedown.spin(forward, 9, volt);
+  intake.spin(forward, 12, volt); 
+  chassis.drive_distance(15, 180, 4.0, 4.0); // into goal
+  wait(1, sec); // load
   intake.stop();
   wait(0.05, sec);
   
-  // Back away from loader
-  driveToXY(AFTER_BACKUP2_X, AFTER_BACKUP2_Y, 6.0, 4.0); // Drive forward out of loader
+  // ========== PHASE 4: Back up and score long goal ==========
+  chassis.drive_distance(-10, 180, 4.0, 4.0); 
+  wait(0.05, sec);
   intakeCylander.set(false);
-  shooter.set(true);
-  wait(0.05, sec);
+  pushCylinder.set(false);
+  chassis.turn_to_angle(0);
+  wait(0.05, sec);/*
   
-  // ========== PHASE 6: Score at goal ==========
-  driveToXY(GOAL_APPROACH_X, GOAL_APPROACH_Y, 8.0, 4.0); // Approach goal
-  wait(0.05, sec);
-  pushCylinder.set(true);
-  wait(0.05, sec);
+  chassis.drive_distance(20, 180, 4.0, 4.0); // to long goal prepare 
   
-  driveToXY(GOAL_X, GOAL_Y, 6.0, 4.0); // Final push into goal
   wait(0.05, sec);
-  
-  intake.spin(forward, 12, volt);
-  intakedown.spin(forward, 12, volt);
-  wait(2.5, sec); // Score 3 blocks into goal
+  shooter.set(true); 
+  pushCylinder.set(true); 
+  wait(0.05, sec);
+  chassis.drive_distance(4, 0, 6, 6);
+  wait(3, sec); // Score blocks
   intake.stop();
   intakedown.stop();
   
   // Display final position for debugging
   RobotPose final = get_robot_pose();
   Controller1.Screen.setCursor(1, 1);
-  Controller1.Screen.print("End X:%.1f Y:%.1f", final.x, final.y);
+  Controller1.Screen.print("End X:%.1f Y:%.1f", final.x, final.y);*/
 }
 //----------------------------------------------------------------------
 
 void Left_43()
 {
-  chassis.set_drive_constants(12, 2.0, 0.005, 2, 10);
-  chassis.set_heading_constants(12, 1.5, 0.005, 2, 10);
-  set_robot_pose(22, 22.5, 0.0);
-  chassis.turn_to_angle(325);
-  wait(0.05,sec);
-
-  // ========== PHASE 1: Drive to first position ==========
-  intakedown.spin(forward, 12, volt);
-  driveToXY(FIRST_POS_X, FIRST_POS_Y, 8.0, 4.0);
-  chassis.turn_to_angle(60);
-  wait(0.05, sec);
   
-  // ========== PHASE 2: Approach and intake 3 blocks ==========
-  driveToXY(BLOCKS_3_APPROACH_X, BLOCKS_3_APPROACH_Y, 4.0, 4.0); // Approach slowly
-  wait(0.05, sec);
-  driveToXY(BLOCKS_3_X, BLOCKS_3_Y, 4.0, 4.0); // Drive onto blocks
-  wait(0.05, sec);
-  // ========== PHASE 3: Score at middle goal ==========
-  driveToXY(MIDDLE_GOAL_APPROACH_X, MIDDLE_GOAL_APPROACH_Y, 8.0, 4.0); // Approach goal
-  wait(0.05, sec);
-  intake.spin(reverse, 12, volt);
-  driveToXY(MIDDLE_GOAL_X, MIDDLE_GOAL_Y, 6.0, 4.0); // Push into goal
-  intakedown.spin(reverse, 9, volt);
-  wait(1.5, sec); // Outtake 3 blocks onto goal
-  intake.stop();
-  wait(0.05, sec);
-  
-  // ========== PHASE 4: Back up and go to loader ==========
-  driveToXY(AFTER_BACKUP_X, AFTER_BACKUP_Y, 4.0, 4.0); // Back away from goal
-  wait(0.05, sec);
-  pushCylinder.set(false);
-  wait(0.05, sec);
-  chassis.turn_to_angle(210);
-  driveToXY(LOADER_ENTRY_X, LOADER_ENTRY_Y, 10.0, 4.0); // Navigate to loader entry
-  wait(0.05, sec);
-  intakedown.spin(forward, 12, volt);
-  wait(0.05, sec);
-  
-  // ========== PHASE 5: Load 3 blocks at loader ==========
-  // Turn to face loader (backward = 180°)
-  chassis.turn_to_angle(180);
-  wait(0.05, sec);
-  intakeCylander.set(true);
-  wait(0.05, sec);
-  
-  // Drive into loader 
-  driveToXY(LOADER_DEEP_X, LOADER_DEEP_Y, 10.0, 4.0);
-  
-  // Load 3 blocks
-  intake.spin(forward, 12, volt);
-  wait(0.5, sec);
-  intake.stop();
-  wait(0.05, sec);
-  
-  // Back away from loader
-  driveToXY(AFTER_BACKUP2_X, AFTER_BACKUP2_Y, 6.0, 4.0); // Drive forward out of loader
-  intakeCylander.set(false);
-  wait(0.05, sec);
-  
-  // ========== PHASE 6: Score at goal ==========
-  chassis.turn_to_angle(0);
-  driveToXY(GOAL_APPROACH_X, GOAL_APPROACH_Y, 8.0, 4.0); // Approach goal
-  wait(0.05, sec);
-  shooter.set(true);
-  pushCylinder.set(true);
-  wait(0.05, sec);
-  
-  driveToXY(GOAL_X, GOAL_Y, 6.0, 4.0); // Final push into goal
-  wait(0.05, sec);
-  
-  intake.spin(forward, 12, volt);
-  intakedown.spin(forward, 12, volt);
-  wait(2.5, sec); // Score 3 blocks into goal
-  intake.stop();
-  intakedown.stop();
-  
-  // Display final position for debugging
-  RobotPose final = get_robot_pose();
-  Controller1.Screen.setCursor(1, 1);
-  Controller1.Screen.print("End X:%.1f Y:%.1f", final.x, final.y);
   
 }
 
