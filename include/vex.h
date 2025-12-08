@@ -66,6 +66,27 @@ RobotPose get_robot_pose();
 void driveToXY(double targetX, double targetY, double maxV, double turnMaxV);
 
 /**
+ * Drive to a target X coordinate while maintaining a specific heading
+ * Calculates the Y coordinate that results in the desired heading
+ * @param targetX Target X coordinate in inches
+ * @param targetHeading Desired heading in degrees (0° = -Y/up, 90° = +X/right)
+ * @param maxV Maximum drive voltage (0-12V)
+ * @param turnMaxV Maximum turn voltage (0-12V)
+ */
+void driveToXAtHeading(double targetX, double targetHeading, double maxV, double turnMaxV);
+
+/**
+ * Drive to a target (X, Y) coordinate while maintaining current heading
+ * Moves backward (negative distance) to reach the target
+ * Useful for backing into goals or moving backward while facing a specific direction
+ * @param targetX Target X coordinate in inches
+ * @param targetY Target Y coordinate in inches
+ * @param maxV Maximum drive voltage (0-12V)
+ * @param turnMaxV Maximum turn voltage (0-12V)
+ */
+void driveToXYBackward(double targetX, double targetY, double maxV, double turnMaxV);
+
+/**
  * Turn to face a specific absolute X, Y coordinate
  * @param targetX Target X coordinate in inches
  * @param targetY Target Y coordinate in inches

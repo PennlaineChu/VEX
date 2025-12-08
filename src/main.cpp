@@ -1029,6 +1029,59 @@ void driveToXY(double targetX, double targetY, double maxV, double turnMaxV) {
     
 }
 
+// ========== DRIVE TO TARGET X COORDINATE AT SPECIFIED HEADING ==========
+// Drive to a target X coordinate while maintaining a specific heading
+// Calculates the Y coordinate that results in the desired heading
+void driveToXAtHeading(double targetX, double targetHeading, double maxV, double turnMaxV) {
+    // Calculate the Y coordinate that results in the desired heading
+    // heading = atan2(dx, -dy) * 180 / PI
+    // So: tan(heading * PI / 180) = dx / (-dy)
+    // So: -dy = dx / tan(heading * PI / 180)
+    // So: dy = -dx / tan(heading * PI / 180)
+    // So: targetY = robot_pose.y + dy = robot_pose.y - dx / tan(heading * PI / 180)
+    
+    double dx = targetX - robot_pose.x;
+    double heading_rad = targetHeading * PI / 180.0;
+    
+    // Handle vertical headings (90° or 270°) where tan is undefined
+    if(std::fabs(std::cos(heading_rad)) < 0.001) {
+        // Heading is approximately 90° or 270° (moving purely in Y direction)
+        // In this case, we can't reach a specific X while maintaining this heading
+        // Just drive straight at the heading
+        double distance = std::fabs(dx);  // Use a reasonable distance
+        chassis.turn_to_angle(targetHeading);
+        vex::wait(50, vex::msec);
+        chassis.drive_distance(distance, targetHeading, maxV, turnMaxV);
+        return;
+    }
+    
+    // Calculate target Y coordinate
+    double dy = -dx / std::tan(heading_rad);
+    double targetY = robot_pose.y + dy;
+    
+    // Now drive to the calculated X,Y coordinate
+    driveToXY(targetX, targetY, maxV, turnMaxV);
+}
+
+// ========== DRIVE TO TARGET XY COORDINATE BACKWARDS ==========
+// Drive to a target (X, Y) coordinate while maintaining current heading
+// Moves backward (negative distance) to reach the target
+// Useful for backing into goals or moving backward while facing a specific direction
+void driveToXYBackward(double targetX, double targetY, double maxV, double turnMaxV) {
+    // ========== STEP 1: Calculate distance to target ==========
+    double dx = targetX - robot_pose.x;
+    double dy = targetY - robot_pose.y;
+    double distance = std::sqrt(dx * dx + dy * dy);
+    
+    // ========== STEP 2: Get current heading ==========
+    // Use current robot heading - don't change it
+    double currentHeading = robot_pose.heading;
+    
+    // ========== STEP 3: Drive backwards to target ==========
+    // Drive backward (negative distance) while maintaining current heading
+    chassis.drive_distance(-distance, currentHeading, maxV, turnMaxV);
+}
+
 // ========== TURN TO FACE X,Y COORDINATES ==========
 // Turn to face a specific point (useful before grabbing objects)
 void turnToXY(double targetX, double targetY, double turnMaxV) {
@@ -1172,7 +1225,7 @@ void turnToXY(double targetX, double targetY, double turnMaxV) {
     R1.stop(); R2.stop(); R3.stop();
 }
 
-int current_auton_selection = 0;
+int current_auton_selection = 1;
 bool auto_started = false;
 bool airspace = false;
 bool ran_auton = false; // 是否已經跑auto模式
