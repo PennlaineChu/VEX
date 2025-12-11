@@ -158,8 +158,9 @@ void Drive::drive_distance(float distance, float heading, float drive_max_voltag
     drive_output = clamp(drive_output, -drive_max_voltage, drive_max_voltage);
     heading_output = clamp(heading_output, -heading_max_voltage, heading_max_voltage);
 
-    // Early exit: if drive voltage is very low (< 0.5V), robot has reached target or is stuck
-    if(std::fabs(drive_output) < 0.5){
+    // Early exit: only if error is very small (< 0.5 inches), meaning we're at the target
+    // Don't exit based on output alone, as low output could mean low PID constants
+    if(std::fabs(drive_error) < 0.5){
       break;
     }
 

@@ -140,6 +140,11 @@ double get_right_inches();
 void test_update_robot_pose();
 
 /**
+ * Display current robot pose (X, Y, heading) on controller screen
+ */
+void display_robot_pose();
+
+/**
  * Background odometry task (runs continuously)
  * Updates robot pose using encoders and IMU
  * @return Task return code (always 0)

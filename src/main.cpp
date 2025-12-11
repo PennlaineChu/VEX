@@ -227,21 +227,19 @@ void set_robot_pose(double x, double y, double heading){
   robot_pose.y = y;
   robot_pose.heading = heading;
   
-  // CRITICAL: Calculate IMU offset so odometry will produce the desired heading
-  // If we want heading=0 and IMU reads 327, then offset=327
-  // Future heading = (IMU - offset) = (327 - 327) = 0 ✓
-  // Wait a bit for IMU to stabilize
-  vex::wait(50, vex::msec);
-  double raw_imu_now = Inertial.heading();
-  imu_heading_offset = raw_imu_now - heading;
+  // CRITICAL: Set both IMU objects directly to the desired heading
+  // Both Inertial and chassis.Gyro are the same physical sensor (PORT20) but different objects
+  // We need to sync both so they agree on the heading
+  vex::wait(50, vex::msec);  // Wait for IMU to stabilize
+  Inertial.setHeading(heading, vex::degrees);  // Set Inertial directly
+  chassis.set_heading(heading);  // Set chassis Gyro directly
   
-  // Normalize offset to 0-360
-  while(imu_heading_offset < 0.0) imu_heading_offset += 360.0;
-  while(imu_heading_offset >= 360.0) imu_heading_offset -= 360.0;
+  // Since we set both directly, the offset should be 0
+  // But we keep the offset system for compatibility with existing code
+  imu_heading_offset = 0.0;
   
-  // DEBUG: Show offset calculation
-  Brain.Screen.printAt(10, 160, "OFFSET SET: Raw=%.0f Want=%.0f Off=%.0f", 
-                       raw_imu_now, heading, imu_heading_offset);
+  // DEBUG: Show heading set
+  Brain.Screen.printAt(10, 160, "HEADING SET: %.0f deg (offset=0)", heading);
 }
 
 // Get current robot pose (non-static so it can be called from autons.cpp)
@@ -368,7 +366,7 @@ void test_update_robot_pose() {
 
 // Display robot pose on controller
 // Optimized for minimal blocking - caller controls frequency
-static void display_robot_pose(){
+void display_robot_pose(){
   Controller1.Screen.clearScreen();  // Clear screen first to prevent overlapping text
   Controller1.Screen.setCursor(1, 1);
   Controller1.Screen.print("X:%.1f Y:%.1f", robot_pose.x, robot_pose.y);
@@ -1225,7 +1223,7 @@ void turnToXY(double targetX, double targetY, double turnMaxV) {
     R1.stop(); R2.stop(); R3.stop();
 }
 
-int current_auton_selection = 1;
+int current_auton_selection = 5;
 bool auto_started = false;
 bool airspace = false;
 bool ran_auton = false; // 是否已經跑auto模式

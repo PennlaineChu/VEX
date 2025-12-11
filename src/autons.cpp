@@ -302,7 +302,7 @@ void Skills()
   chassis.drive_distance(-9, 180, 11.0, 6.0); // backup
   intakeCylander.set(false);
   wait(0.05, sec);
-  chassis.turn_to_angle(270); //face long goal
+  chassis.turn_to_angle(270); //for crossing
   // ========== PHASE 3: cross the field to score in long goal ==========
   driveToXY(8.1, 90, 8.0, 6.0); //cross the field
   wait(0.05, sec);
@@ -357,7 +357,7 @@ void Skills()
   wait(0.05, sec);/*
 
   // ========== PHASE 4: Loader 3 ==========
-  driveToXY(115, 18, 8.0, 6.0);
+  driveToXY(115, 18, 8.0, 6.0); //dont know if it would touch  blue parking
   wait(0.05, sec);
   chassis.turn_to_angle(0); //face loader 3
   intakeCylander.set(true);
@@ -365,37 +365,34 @@ void Skills()
   wait(.7, sec); //load 6 blocks
   chassis.drive_distance(-12, 0, 8.0, 6.0); // backup
   intakeCylander.set(false);
-  chassis.turn_to_angle(180); //face long goal
-  wait(0.05, sec);
-  chassis.drive_distance(5, 180, 4.0, 4.0); // to long goal prepare 
-  wait(0.05, sec);
-  shooter.set(true); 
-  chassis.drive_distance(7.5, 180, 6, 6);
-  pushCylinder.set(true); 
-  chassis.drive_distance(2.5, 180, 6, 6);
-  wait(1.5, sec); // Score blocks
-  pushCylinder.set(false);
-  shooter.set(false);
-  chassis.drive_distance(-15, 180, 4.0, 4.0); // backup
+  chassis.turn_to_angle(90); //for crossing
   wait(0.05, sec);
 
   // ========== PHASE 5: Drive across the field to score in long goal ==========
-  driveToXY(132.5, 70.2, 8.0, 6.0); // cross the field
+  
+  driveToXY(132.3, 50.4, 8.0, 6.0); // cross the field
   wait(0.05, sec);
-  driveToXY(115, 110, 8.0, 6.0); // to long goal
+  intake.stop();
+  intakedown.stop();
+  driveToXY(126.4, 104.4, 8.0, 6.0); 
+  wait(0.05, sec);
+  driveToXY(121.6, 115.5, 8.0, 6.0); // to long goal
   wait(0.05, sec);
   chassis.turn_to_angle(0); //face long goal
   wait(0.05, sec);
-  chassis.drive_distance(5, 0, 4.0, 4.0); // to long goal prepare
+  chassis.drive_distance(15, 0, 4.0, 4.0); // to long goal prepare 
   wait(0.05, sec);
-  shooter.set(true);
-  chassis.drive_distance(7.5, 0, 6, 6);
-  pushCylinder.set(true);
-  chassis.drive_distance(2.5, 0, 6, 6);
-  wait(1.5, sec); // Score blocks
-  pushCylinder.set(false);
-  shooter.set(false);
-  chassis.drive_distance(-15, 0, 4.0, 4.0); // backup
+  pushCylinder.set(true); 
+  intakedown.spin(reverse, 10, volt);
+  intake.spin(reverse, 10, volt);
+  wait(0.1, sec);
+  intakedown.spin(forward, 10, volt);
+  intake.spin(forward, 10, volt);
+  wait(0.1, sec);
+  chassis.drive_distance(4, 0, 4, 6);
+  wait(0.8, sec);
+  chassis.drive_distance(-7, 0, 4.0, 4.0); // backup
+  wait(0.05, sec);
 
   // ========== PHASE 6: Loader 4 and score 6 ==========
   chassis.turn_to_angle(180); //face loader
@@ -409,14 +406,18 @@ void Skills()
   chassis.drive_distance(5, 0, 4.0, 4.0); // to long goal prepare 
   wait(0.05, sec);
   shooter.set(true); 
-  chassis.drive_distance(7.5, 0, 6, 6);
+  chassis.drive_distance(4, 0, 6, 6);
   pushCylinder.set(true); 
-  chassis.drive_distance(2.5, 0, 6, 6);
-  wait(1.5, sec); // Score blocks
-  pushCylinder.set(false);
-  shooter.set(false); 
-  chassis.drive_distance(-15, 0, 4.0, 4.0); // backup
-  wait(0.05, sec);
+  intakedown.spin(reverse, 10, volt);
+  intake.spin(reverse, 10, volt);
+  wait(0.1, sec);
+  intakedown.spin(forward, 10, volt);
+  intake.spin(forward, 10, volt);
+  wait(0.1, sec);
+  chassis.drive_distance(4, 0, 4, 6);
+  wait(0.8, sec);
+  chassis.drive_distance(-7, 0, 4.0, 4.0); // backup
+  wait(0.05, sec)
 
   // ========== PHASE 7: parking ==========
   driveToXY(97, 133, 8.0, 6.0); // to parking zone
