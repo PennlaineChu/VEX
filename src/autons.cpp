@@ -285,59 +285,146 @@ void Solo()
 
 void Skills()
 {
-  chassis.set_drive_constants(12, 2.0, 0.005, 2, 10);
-  chassis.set_heading_constants(12, 1.5, 0.005, 2, 10);
-  chassis.turn_to_angle(300);
-  wait(0.05,sec);
-  intakedown.spin(forward, 12, volt);
-  wait(0.05,sec);
-  intake.spin(forward, 12, volt);
-  chassis.drive_distance(20, 300, 6, 6);
-  wait(.05,sec);
-  chassis.turn_to_angle(43); 
-  wait(0.05,sec);
-  chassis.drive_distance(7.5, 43, 5, 5);//intake 3 balls
-  wait(.3,sec);
-  //shooter.set(true);
-  pushCylinder.set(true);
-  wait(0.05,sec);
-  chassis.drive_distance(25.5, 43, 6, 6);//middle goals
-  intake.spin(forward, 7, volt);
-  wait(2.5,sec);//outake middle goals
-  intake.stop();
-  wait(0.05,sec);
-  chassis.drive_distance(-15, 43, 4, 4);//backback
-  wait(0.05,sec);
-  pushCylinder.set(false);
-  wait(0.05,sec);
-  chassis.turn_to_angle(110);
-  wait(0.05,sec);
-  chassis.drive_distance(65, 110, 4, 4);//turn right
-  wait(0.05,sec);
-  chassis.turn_to_angle(300);
-  wait(0.05,sec);
-  chassis.drive_distance(10, 300, 4, 4);
-  wait(.5,sec);
-  intakedown.spin(reverse, 12, volt);
-  wait(0.05,sec);
-  intake.spin(reverse, 12, volt);
-  wait(0.05,sec);
-  chassis.drive_distance(-10, 300, 4, 4);
-  wait(0.05,sec);
-  chassis.turn_to_angle(3);
-  wait(0.05,sec);
-  chassis.drive_distance(60, 3, 6, 6);
-  wait(0.05,sec);
-  chassis.turn_to_angle(280);
-  wait(0.05,sec);
-  chassis.drive_distance(60, 280, 6, 6);
-  wait(0.05,sec);
-  chassis.turn_to_angle(180);
-  pushCylinder.set(true);
-  wait(0.05,sec);
+  // Set initial pose: X, Y, and heading (0° = up/forward, 90° = right, 180° = down, 270° = left)
+  // Robot is physically facing left, so set heading to 270°
+  set_robot_pose(54, 117.5, 270); // Robot starts facing left (270°)
+  // ========== PHASE 1: Load first 6 balls ==========
+  chassis.drive_distance(31.1, 280, 8.0, 6.0); //to 26, 116.5
+  wait(0.05, sec);
+  intakedown.spin(forward, 10, volt);
+  intake.spin(forward, 10, volt);
+  chassis.turn_to_angle(180); //face long goal
+  intakeCylander.set(true); 
   shooter.set(true);
-  chassis.drive_distance(14, 180, 6, 6);
-  
+  wait(0.15, sec);
+  chassis.drive_distance(18, 180, 8.0, 6.0); // into loader 1
+  wait(.8, sec); //load 6 blocks
+  chassis.drive_distance(-9, 180, 11.0, 6.0); // backup
+  intakeCylander.set(false);
+  wait(0.05, sec);
+  chassis.turn_to_angle(270); //face long goal
+  // ========== PHASE 3: cross the field to score in long goal ==========
+  driveToXY(8.1, 90, 8.0, 6.0); //cross the field
+  wait(0.05, sec);
+  intake.stop();
+  intakedown.stop();
+  driveToXY(10, 37, 8.0, 6.0); 
+  wait(0.05, sec);
+  driveToXY(18.8, 24.9, 8.0, 6.0); //to long goal
+  wait(0.05, sec);
+  chassis.turn_to_angle(181); //face long goal
+  wait(0.05, sec);
+  chassis.drive_distance(15, 180, 6.0, 4.0); // to long goal prepare 
+  wait(0.05, sec);
+  intake.spin(forward, 10, volt);
+  intakedown.spin(forward, 10, volt);
+  pushCylinder.set(true); 
+  intakedown.spin(reverse, 10, volt);
+  intake.spin(reverse, 10, volt);
+  wait(0.1, sec);
+  intakedown.spin(forward, 10, volt);
+  intake.spin(forward, 10, volt);
+  wait(0.1, sec);
+  chassis.drive_distance(4, 180, 4, 6);
+  wait(0.8, sec);
+  pushCylinder.set(false); 
+  chassis.drive_distance(-7, 180, 4.0, 4.0); // backup
+  wait(0.05, sec);
+  // ========== PHASE 4: Loader 2 and score 6 ==========
+  chassis.turn_to_angle(5); //face loader
+  wait(0.05, sec);
+  chassis.drive_distance(5, 0, 4, 4);
+  wait(0.05, sec);
+  intakeCylander.set(true);
+  chassis.drive_distance(15, 0, 8.0, 6.0); // into loader 2
+  wait(.7, sec); //load 6 blocks
+  chassis.drive_distance(-12, 0, 8.0, 6.0); // backup
+  intakeCylander.set(false);
+  chassis.turn_to_angle(185); //face long goal
+  wait(0.05, sec);
+  chassis.drive_distance(5, 180, 4.0, 4.0); // to long goal prepare 
+  wait(0.05, sec);
+  pushCylinder.set(true); 
+  intakedown.spin(reverse, 10, volt);
+  intake.spin(reverse, 10, volt);
+  wait(0.1, sec);
+  intakedown.spin(forward, 10, volt);
+  intake.spin(forward, 10, volt);
+  wait(0.1, sec);
+  chassis.drive_distance(4, 180, 4, 6);
+  wait(0.8, sec);
+  chassis.drive_distance(-7, 180, 4.0, 4.0); // backup
+  wait(0.05, sec);/*
+
+  // ========== PHASE 4: Loader 3 ==========
+  driveToXY(115, 18, 8.0, 6.0);
+  wait(0.05, sec);
+  chassis.turn_to_angle(0); //face loader 3
+  intakeCylander.set(true);
+  chassis.drive_distance(15, 0, 8.0, 6.0); // into loader 3  
+  wait(.7, sec); //load 6 blocks
+  chassis.drive_distance(-12, 0, 8.0, 6.0); // backup
+  intakeCylander.set(false);
+  chassis.turn_to_angle(180); //face long goal
+  wait(0.05, sec);
+  chassis.drive_distance(5, 180, 4.0, 4.0); // to long goal prepare 
+  wait(0.05, sec);
+  shooter.set(true); 
+  chassis.drive_distance(7.5, 180, 6, 6);
+  pushCylinder.set(true); 
+  chassis.drive_distance(2.5, 180, 6, 6);
+  wait(1.5, sec); // Score blocks
+  pushCylinder.set(false);
+  shooter.set(false);
+  chassis.drive_distance(-15, 180, 4.0, 4.0); // backup
+  wait(0.05, sec);
+
+  // ========== PHASE 5: Drive across the field to score in long goal ==========
+  driveToXY(132.5, 70.2, 8.0, 6.0); // cross the field
+  wait(0.05, sec);
+  driveToXY(115, 110, 8.0, 6.0); // to long goal
+  wait(0.05, sec);
+  chassis.turn_to_angle(0); //face long goal
+  wait(0.05, sec);
+  chassis.drive_distance(5, 0, 4.0, 4.0); // to long goal prepare
+  wait(0.05, sec);
+  shooter.set(true);
+  chassis.drive_distance(7.5, 0, 6, 6);
+  pushCylinder.set(true);
+  chassis.drive_distance(2.5, 0, 6, 6);
+  wait(1.5, sec); // Score blocks
+  pushCylinder.set(false);
+  shooter.set(false);
+  chassis.drive_distance(-15, 0, 4.0, 4.0); // backup
+
+  // ========== PHASE 6: Loader 4 and score 6 ==========
+  chassis.turn_to_angle(180); //face loader
+  intakeCylander.set(true);
+  chassis.drive_distance(15, 180, 8.0, 6.0); // into loader 4
+  wait(.7, sec); //load 6 blocks
+  chassis.drive_distance(-12, 180, 8.0, 6.0); // backup
+  intakeCylander.set(false);
+  chassis.turn_to_angle(0); //face long goal
+  wait(0.05, sec);
+  chassis.drive_distance(5, 0, 4.0, 4.0); // to long goal prepare 
+  wait(0.05, sec);
+  shooter.set(true); 
+  chassis.drive_distance(7.5, 0, 6, 6);
+  pushCylinder.set(true); 
+  chassis.drive_distance(2.5, 0, 6, 6);
+  wait(1.5, sec); // Score blocks
+  pushCylinder.set(false);
+  shooter.set(false); 
+  chassis.drive_distance(-15, 0, 4.0, 4.0); // backup
+  wait(0.05, sec);
+
+  // ========== PHASE 7: parking ==========
+  driveToXY(97, 133, 8.0, 6.0); // to parking zone
+  wait(0.05, sec);
+  chassis.turn_to_angle(270); //face parking zone
+  wait(0.05, sec);
+  chassis.drive_distance(27, 270, 10.0, 6.0); // into parking zone
+*/
 
 }
 //--------------------------------------------------------
