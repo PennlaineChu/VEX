@@ -1281,23 +1281,28 @@ void shooterPushSwitch() {
 int opticalLightTask() {
   int lightPower = 100;
   Optical.setLightPower(lightPower, percent);
+  Optical_go.setLightPower(lightPower, percent);
   while(true){
     if(Controller1.ButtonUp.pressing()){
       lightPower += 10;
       if(lightPower >= 100) lightPower = 100;
       Optical.setLightPower(lightPower, percent);
+      Optical_go.setLightPower(lightPower, percent);
       wait(50, msec);
     }else if(Controller1.ButtonDown.pressing()){
       lightPower -= 10;
       if(lightPower <= 0) lightPower = 0;  
       Optical.setLightPower(lightPower, percent);
+      Optical_go.setLightPower(lightPower, percent);
       wait(50, msec);
     }
     
     if(lightPower > 0 && pushCylinder){
       Optical.setLight(ledState::on);
+      Optical_go.setLight(ledState::on);
     }else{
       Optical.setLight(ledState::off);
+      Optical_go.setLight(ledState::off);
     }
     
     wait(50, msec);

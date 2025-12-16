@@ -36,7 +36,7 @@ void Right_43()
 {
   
   
-  // ========== CORRECT COORDINATE MAP ==========
+     // ========== CORRECT COORDINATE MAP ==========
   // Field: 140.41" × 140.41" (0,0) is at top left corner, (140.41, 140.41) is at bottom right
   // Robot: 12.5" wide × 18" long (inertia at center: 6.25" from sides, 9" from front/back)
   // START: (88, 118.3) - Actual starting position on field (robot center)
@@ -45,53 +45,55 @@ void Right_43()
   
   // Set initial pose: X, Y, and heading (0° = up/forward, 90° = right, 180° = down, 270° = left)
   set_robot_pose(86, 116.3, 0.0); // Robot starts facing up/forward (0°)
-  intakedown.spin(forward, 10, volt);
+  intakedown.spin(forward, 12, volt);
   // ========== PHASE 1: Drive to intake position ==========
   // driveToXY automatically calculates and turns to face the target
   wait(0.05, sec);
-  driveToXY(103, 105, 8.0, 6.0);
+  driveToXY(100, 105, 8.0, 8.0); //條歪一點 讓他可以三顆球吸起來
   wait(0.05, sec);
   intake.spin(forward, 10, volt);
 
   // ========== PHASE 2: Score 3 blocks ==========
-  driveToXY(93.5, 93.5, 6.0, 6.0); // Approach slowly
-  wait(0.05, sec);
-  chassis.drive_distance(15, 315, 8.0, 6.0); // Drive to low goal
+  driveToXY(93.5, 95, 6.0, 6.0); // Approach slowly
+  wait(0.1, sec);
+  chassis.drive_distance(15, 315, 12.0, 6.0); // Drive to low goal
   intakedown.spin(reverse, 6, volt);
-  intake.spin(reverse, 10, volt);
-  wait(0.05, sec);
-  chassis.drive_distance(4, 315, 6, 6);
-  wait(0.5, sec); //Score blocks 
+  intake.spin(reverse, 12, volt);
+  wait(2, sec); //Score blocks 
   intakedown.stop();
   intake.stop();  
   // ========== PHASE 3: back up and load ==========
-  chassis.drive_distance(-10, 315, 8, 6); // Backup
+  chassis.drive_distance(-10, 315, 12, 6); // Backup
   wait(0.05, sec);
   driveToXAtHeading(115, 135, 8.0, 6.0); //to loader with x at 115, heading 135
+  wait(0.05, sec);
   chassis.turn_to_angle(180); // Prepare to load
   intakeCylander.set(true);
-  intakedown.spin(forward, 9, volt);
+  wait(0.1, sec);
+  shooter.set(true); 
+  intakedown.spin(forward, 10, volt);
   intake.spin(forward, 12, volt); 
-  chassis.drive_distance(15, 180, 4.0, 4.0); // into goal
+  chassis.drive_distance(15, 180, 10.0, 4.0); // into goal
   wait(1, sec); // load
   intake.stop();
   wait(0.05, sec);
   
   // ========== PHASE 4: Back up and score long goal ==========
-  chassis.drive_distance(-10, 180, 4.0, 4.0); 
+  chassis.drive_distance(-8, 180, 12.0, 4.0); 
   wait(0.05, sec);
   intakeCylander.set(false);
-  pushCylinder.set(false);
-  chassis.turn_to_angle(0);
+  //pushCylinder.set(false);
+  chassis.turn_to_angle(2);
   wait(0.05, sec);
   
-  chassis.drive_distance(20, 180, 4.0, 4.0); // to long goal prepare 
-  
-  wait(0.05, sec);
-  shooter.set(true); 
+  chassis.drive_distance(15, 2, 10.0, 4.0); // to long goal prepare 
+  //driveToXY(117.8, 103.7, 12.0, 6.0);
   pushCylinder.set(true); 
   wait(0.05, sec);
-  chassis.drive_distance(4, 0, 6, 6);
+  //intake.spin(reverse, 6, volt);
+  //intakedown.spin(reverse, 4, volt);
+  intakedown.spin(forward, 10, volt);
+  intake.spin(forward, 12, volt);
   wait(3, sec); // Score blocks
   intake.stop();
   intakedown.stop();
@@ -105,7 +107,6 @@ void Right_43()
 
 void Left_43()
 {
-  
   // Set initial pose: X, Y, and heading (0° = up/forward, 90° = right, 180° = down, 270° = left)
   set_robot_pose(54.4, 116.3, 0.0); // Robot starts facing up/forward (0°)
   intakedown.spin(forward, 10, volt);
@@ -121,34 +122,264 @@ void Left_43()
   chassis.turn_to_angle(45);
   intake.spin(forward, 10, volt);
   wait(0.05, sec);
-  driveToXY(46.5, 92.5, 8.0, 6.0); // Approach slowly
-  wait(0.2, sec);
-  chassis.drive_distance(12, 45, 8.0, 6.0); // Drive to upper goal
+  driveToXY(47, 92.5, 8.0, 6.0); // Approach slowly
+  wait(0.1, sec);
+  chassis.drive_distance(13, 47, 8.0, 6.0); // Drive to upper goal
   wait(0.05, sec);
   pushCylinder.set(true); 
-  chassis.drive_distance(1.5, 45, 8, 6);
-  wait(0.7, sec); //Score blocks 
+  chassis.drive_distance(1.75, 47, 8, 6);
+  wait(0.4, sec); //Score blocks 
   intakedown.stop();
   wait(0.05, sec);
   intake.stop(); 
   wait(0.05, sec); 
   // ========== PHASE 3: back up and load ==========
   pushCylinder.set(false); 
-  chassis.drive_distance(-10, 45, 8, 6); // Backup
+  chassis.drive_distance(-10, 45, 12, 6); // Backup
   wait(0.05, sec);
   intake.stop();
+  driveToXY(26, 116, 10.0, 6.0); //to loader at X=25 while maintaining heading 225°
+  chassis.turn_to_angle(180); // Prepare to load
+  intakeCylander.set(true);
+  wait(0.2, sec);
+  intakedown.spin(forward, 10, volt);
+  intake.spin(forward, 10, volt); 
+  chassis.drive_distance(15, 180, 8.0, 4.0); // into goal
+  wait(0.3, sec); // load
+  intake.stop();
+  wait(0.05, sec);
+  
+  // ========== PHASE 4: Back up and score long goal ==========
+  chassis.drive_distance(-10, 180, 10.0, 4.0); 
+  wait(0.05, sec);
+  intakeCylander.set(false);
+  chassis.turn_to_angle(355);
+  wait(0.05, sec);
+  chassis.drive_distance(14, 360, 8.0, 4.0); // to long goal prepare 
+  intake.spin(reverse, 5, volt);
+  shooter.set(true);
+  pushCylinder.set(true);
+  wait(0.1, sec);
+  intake.spin(forward, 12, volt);
+  intakedown.spin(forward, 10, volt);
+  wait(3, sec); // Score blocks
+  intake.stop();
+  intakedown.stop();
+  pushCylinder.set(false);
+  
+  // Display final position for debugging
+  RobotPose final = get_robot_pose();
+  Controller1.Screen.setCursor(1, 1);
+  Controller1.Screen.print("End X:%.1f Y:%.1f", final.x, final.y);
+
+}
+
+//--------------------------------------------------------
+
+void Right_7()
+{
+
+  vex::color selectedTeamColor = vex::color::red;
+  set_robot_pose(86, 116.3, 0.0); // Robot starts facing up/forward (0°)
+  intakedown.spin(forward, 10, volt);
+  // ========== PHASE 1: Drive to intake position ==========
+  // driveToXY automatically calculates and turns to face the target
+  wait(0.05, sec);
+  driveToXY(93.5, 93.5, 9.0, 8.0);
+  wait(0.05, sec);
+  intake.spin(forward, 12, volt);
+
+  // ========== PHASE 2: intake 1 block ==========
+  wait(0.05, sec);
+  driveToXY(115, 76, 9.0, 6.0); // go intake, make sure don't cross alliance line
+  wait(0.1, sec);
+  driveToXYBackward(93.5, 93.5, 10.0, 6.0); // Drive to low goal backward
+  /*intakedown.spin(reverse, 5, volt);
+  intake.spin(reverse, 6, volt);
+  wait(0.05, sec);
+  chassis.turn_to_angle(320);
+  chassis.drive_distance(13.5, 320, 10.0, 6.0); // Drive to low goal
+  intakedown.spin(reverse, 7, volt);
+  intake.spin(reverse, 12, volt);
+  //wait(0.01, sec);
+  chassis.drive_distance(2.5, 320, 10, 6);
+  wait(0.01, sec);//Score blocks
+  intakedown.stop();
+  intake.stop();
+  // ========== PHASE 3: back up and load ==========
+  chassis.drive_distance(-10, 320, 10.0, 6); // Backup
+  wait(0.05, sec);*/
+  driveToXAtHeading(115, 135, 10.0, 8.0); //to loader with x at 115, heading 135
+  chassis.turn_to_angle(180); // Prepare to load
+  wait(0.1, sec);
+  intakeCylander.set(true);
+  intakedown.spin(forward, 12, volt);
+  intake.spin(forward, 12, volt); 
+  shooter.set(true);
+  wait(0.2, sec);
+  chassis.drive_distance(13.5, 180, 8.0, 4.0); // into goal
+  // wait load
+  intake.stop();
+  wait(0.05, sec);
+  // ========== PHASE 4: Back up and score long goal ==========
+  chassis.drive_distance(-10, 180, 10.0, 4.0); 
+  wait(0.05, sec);
+  intakeCylander.set(false);
+  chassis.turn_to_angle(5);
+  wait(0.05, sec);
+  chassis.drive_distance(14, 3, 10.0, 6.0); // to long goal prepare 
+  intake.spin(reverse, 5, volt);
+  wait(0.05, sec);
+  pushCylinder.set(true);
+  wait(0.05, sec);
+  intake.spin(forward, 12, volt);
+  intakedown.spin(forward, 10, volt);
+  wait(3, sec); // Score blocks
+  intake.stop();
+  intakedown.stop();
+  pushCylinder.set(false);
+
+  // Display final position for debugging
+  RobotPose final = get_robot_pose();
+  Controller1.Screen.setCursor(1, 1);
+  Controller1.Screen.print("End X:%.1f Y:%.1f", final.x, final.y);
+  
+
+}
+
+//--------------------------------------------------------
+
+void Left_7()
+{
+  vex::color selectedTeamColor = vex::color::red;
+  set_robot_pose(54.4, 116.3, 0.0); // Robot starts facing up/forward (0°)
+  intakedown.spin(forward, 12, volt);
+  // ========== PHASE 1: Drive to intake position ==========
+  // driveToXY automatically calculates and turns to face the target
+  driveToXY(48, 92.5, 9.0, 8.0);
+  wait(0.1, sec);
+  intake.spin(forward, 12, volt);
+  // ========== PHASE 2: intake 1 block ==========
+  wait(0.05, sec);
+  driveToXY(26, 75.5, 9.0, 6.0); // go intake, make sure don't cross alliance line
+  wait(0.2, sec);
+  driveToXYBackward(47, 93.5, 10.0, 6.0); // Drive to low goal backward
+  /*intakedown.spin(reverse, 5, volt);
+  intake.spin(reverse, 6, volt);
+  wait(0.05, sec);
+  chassis.turn_to_angle(320);
+  chassis.drive_distance(13.5, 320, 10.0, 6.0); // Drive to low goal
+  intakedown.spin(reverse, 7, volt);
+  intake.spin(reverse, 12, volt);
+  //wait(0.01, sec);
+  chassis.drive_distance(2.5, 320, 10, 6);
+  wait(0.01, sec);//Score blocks
+  intakedown.stop();
+  intake.stop();  
+  // ========== PHASE 3: back up and load ==========
+  chassis.drive_distance(-10, 320, 10.0, 6); // Backup
+  wait(0.05, sec);*/
+  driveToXAtHeading(24, 230, 10.0, 8.0); //to loader with x at 25.5, heading 110
+  chassis.turn_to_angle(180); // Prepare to load
+  wait(0.1, sec);
+  intakeCylander.set(true);
+  shooter.set(true);
+  wait(0.2, sec);
+  chassis.drive_distance(12, 180, 8.0, 4.0); // into goal
+  // wait load
+  intake.stop();
+  wait(0.05, sec);
+  // ========== PHASE 4: Back up and score long goal ==========
+  chassis.drive_distance(-10, 180, 10.0, 4.0); 
+  wait(0.05, sec);
+  intakeCylander.set(false);
+  chassis.turn_to_angle(355);
+  wait(0.05, sec);
+  chassis.drive_distance(14, 358, 10.0, 6.0); // to long goal prepare 
+  intake.spin(reverse, 5, volt);
+  wait(0.05, sec);
+  pushCylinder.set(true);
+  wait(0.05, sec);
+  intake.spin(forward, 12, volt);
+  intakedown.spin(forward, 10, volt);
+  wait(3, sec); // Score blocks
+  intake.stop();
+  intakedown.stop();
+  pushCylinder.set(false);
+
+  // Display final position for debugging
+  RobotPose final = get_robot_pose();
+  Controller1.Screen.setCursor(1, 1);
+  Controller1.Screen.print("End X:%.1f Y:%.1f", final.x, final.y);
+}
+
+//--------------------------------------------------------
+
+void Solo()
+{
+  set_robot_pose(86.4, 117.5, 90); // Robot starts facing left (270°)
+  // ========== PHASE 1: Load and score 3 from right loader ==========
+  chassis.drive_distance(31.1, 80, 12.0, 6.0); //to 26, 116.5
+  wait(0.05, sec);
+  intakedown.spin(forward, 10, volt);
+  intake.spin(forward, 10, volt);
+  chassis.turn_to_angle(180); //face long goal
+  intakeCylander.set(true); 
+  shooter.set(true);
+  wait(0.15, sec);
+  chassis.drive_distance(18, 180, 9.0, 6.0); // into loader 1
+  wait(.3, sec); //load 6 blocks
+  chassis.drive_distance(-9, 180, 12.0, 6.0); // backup
+  intakeCylander.set(false);
+  wait(0.05, sec);
+  chassis.turn_to_angle(0);
+  wait(0.05, sec);
+  
+  chassis.drive_distance(13.5, 0, 10.0, 4.0); // to long goal prepare 
+  
+  wait(0.05, sec);
+  shooter.set(true); 
+  pushCylinder.set(true); 
+  wait(0.05, sec);
+  chassis.drive_distance(4, 0, 6, 6);
+  wait(0.5, sec); // Score blocks
+  intake.stop();
+  pushCylinder.set(false);
+  chassis.drive_distance(-7, 0, 6, 6); // backup
+
+  // ========== PHASE 2: Score 6 to left upper goal ==========
+  intake.spin(forward, 12, volt);
+  driveToXY(110, 110, 8.0, 6.0);
+  wait(0.05, sec);
+  driveToXY(92, 92, 8.0, 6.0);
+  wait(0.05, sec);
+  driveToXY(46, 94.4, 8.0, 6.0);
+  wait(0.15, sec);
+  chassis.turn_to_angle(45);
+  wait(0.05, sec);
+  chassis.drive_distance(12, 45, 8.0, 6.0); // Drive to upper goal
+  wait(0.05, sec);
+  pushCylinder.set(true); 
+  chassis.drive_distance(1.5, 45, 8, 6);
+  wait(0.5, sec); //Score blocks 
+  intake.stop(); 
+  wait(0.05, sec); 
+  pushCylinder.set(false); 
+  chassis.drive_distance(-10, 45, 8, 6); // Backup
+  wait(0.05, sec);
+
+  // ========== PHASE 3: load and score 3 from left loader==========
   driveToXAtHeading(25, 225, 8.0, 6.0); //to loader at X=25 while maintaining heading 225°
   chassis.turn_to_angle(180); // Prepare to load
   intakedown.spin(forward, 10, volt);
   intakeCylander.set(true);
   intake.spin(forward, 10, volt); 
   chassis.drive_distance(15, 180, 6.0, 4.0); // into goal
-  wait(1, sec); // load
+  wait(0.3, sec); // load
   intake.stop();
   wait(0.05, sec);
   
-  // ========== PHASE 4: Back up and score long goal ==========
-  chassis.drive_distance(-12, 180, 4.0, 4.0); 
+  chassis.drive_distance(-12, 180, 4.0, 4.0);  //backup from loader
   wait(0.05, sec);
   intakeCylander.set(false);
   chassis.turn_to_angle(0);
@@ -171,114 +402,7 @@ void Left_43()
   pushCylinder.set(false);
   intake.stop();
   intakedown.stop();
-  
-  // Display final position for debugging
-  RobotPose final = get_robot_pose();
-  Controller1.Screen.setCursor(1, 1);
-  Controller1.Screen.print("End X:%.1f Y:%.1f", final.x, final.y);
-}
 
-//--------------------------------------------------------
-
-void Right_7()
-{
-
-  set_robot_pose(86, 116.3, 0.0); // Robot starts facing up/forward (0°)
-  intakedown.spin(forward, 10, volt);
-  // ========== PHASE 1: Drive to intake position ==========
-  // driveToXY automatically calculates and turns to face the target
-  wait(0.05, sec);
-  driveToXY(93.5, 93.5, 8.0, 6.0);
-  wait(0.05, sec);
-  intake.spin(forward, 10, volt);
-
-  // ========== PHASE 2: intake 1 block ==========
-  wait(0.05, sec);
-  driveToXY(110, 82, 8.0, 6.0); // go intake, make sure don't cross alliance line
-  wait(0.1, sec);
-  driveToXYBackward(93.5, 93.5, 8.0, 6.0); // Drive to low goal backward
-  wait(0.05, sec);
-  chassis.turn_to_angle(315);
-  chassis.drive_distance(15, 315, 8.0, 6.0); // Drive to low goal
-  intakedown.spin(reverse, 6, volt);
-  intake.spin(reverse, 10, volt);
-  wait(0.05, sec);
-  chassis.drive_distance(4, 315, 6, 6);
-  wait(0.1, sec); //Score blocks 
-  intakedown.stop();
-  intake.stop();  
-  // ========== PHASE 3: back up and load ==========
-  chassis.drive_distance(-10, 315, 8, 6); // Backup
-  wait(0.05, sec);
-  driveToXAtHeading(115, 135, 8.0, 6.0); //to loader with x at 115, heading 135
-  chassis.turn_to_angle(180); // Prepare to load
-  intakeCylander.set(true);
-  intakedown.spin(forward, 9, volt);
-  intake.spin(forward, 12, volt); 
-  chassis.drive_distance(15, 180, 4.0, 4.0); // into goal
-  wait(1, sec); // load
-  intake.stop();
-  wait(0.05, sec);
-
-
-}
-
-//--------------------------------------------------------
-
-void Left_7()
-{
-  vex::color selectedTeamColor = vex::color::red;
-}
-
-//--------------------------------------------------------
-
-void Solo()
-{
-  vex::color selectedTeamColor = vex::color::red;
-  chassis.set_drive_constants(12, 2.0, 0.005, 2, 10);
-  chassis.set_heading_constants(12, 1.5, 0.005, 2, 10);
-  chassis.turn_to_angle(300);
-  wait(0.05,sec);
-  intakedown.spin(forward, 12, volt);
-  //intake.spin(forward, 12, volt);
-  chassis.drive_distance(20, 300, 6, 6);
-  wait(.05,sec);
-  chassis.turn_to_angle(43); 
-  chassis.drive_distance(4, 43, 4, 4);//preintake
-  intake.spin(forward, 12, volt);
-  chassis.drive_distance(3, 43, 4, 4);//intake 3 balls
-  //shooter.set(true);
-  wait(0.05,sec);
-  chassis.drive_distance(22, 43, 6, 6);//middle goals
-  pushCylinder.set(true);
-  chassis.drive_distance(5, 43, 6, 6);//middle goals
-  wait(1.5,sec);//outake middle goals
-  intake.stop();
-  wait(0.05,sec);
-  chassis.drive_distance(-10, 43, 4, 4);//backback
-  wait(0.05,sec);
-  pushCylinder.set(false);
-  wait(0.05,sec);
-
-  chassis.turn_to_angle(110);
-  wait(0.05,sec);
-  chassis.drive_distance(50, 110, 10, 10);//to 2nd pile
-  chassis.turn_to_angle(319); 
-  chassis.drive_distance(4, 319, 4, 4);//preintake
-  wait(0.05,sec);
-  chassis.drive_distance(3, 319, 4, 4);//intake 3 balls
-  //shooter.set(true);
-  wait(0.05,sec);
-  chassis.drive_distance(22, 319, 6, 6);//middle goals
-  intake.spin(reverse, 12, volt);
-  chassis.drive_distance(5, 319, 6, 6);//middle goals
-  intakedown.spin(reverse, 9, volt);
-  wait(1.5,sec);//outake middle goals
-  intake.stop();
-  wait(0.05,sec);
-  chassis.drive_distance(-8, 319, 4, 4);//backback
-  wait(0.05,sec);
-  pushCylinder.set(false);
 
 }
 //--------------------------------------------------------
@@ -289,17 +413,19 @@ void Skills()
   // Robot is physically facing left, so set heading to 270°
   set_robot_pose(54, 117.5, 270); // Robot starts facing left (270°)
   // ========== PHASE 1: Load first 6 balls ==========
-  chassis.drive_distance(31.1, 280, 8.0, 6.0); //to 26, 116.5
+  //chassis.drive_distance(32.1, 280, 8.0, 6.0); //to 26, 116.5
+  driveToXY(24, 116.5, 10.0, 6.0);
   wait(0.05, sec);
-  intakedown.spin(forward, 10, volt);
-  intake.spin(forward, 10, volt);
-  chassis.turn_to_angle(180); //face long goal
-  intakeCylander.set(true); 
+  intakedown.spin(forward, 12, volt);
+  intake.spin(forward, 12, volt);
+  chassis.turn_to_angle(182); //face long goal
+  wait(0.05, sec);
+  intakeCylander.set(true);
   shooter.set(true);
-  wait(0.15, sec);
-  chassis.drive_distance(18, 180, 8.0, 6.0); // into loader 1
-  wait(.8, sec); //load 6 blocks
-  chassis.drive_distance(-9, 180, 11.0, 6.0); // backup
+  wait(0.1, sec);
+  chassis.drive_distance(17, 182, 12.0, 6.0); // into loader 1
+  wait(1, sec); //load 6 blocks
+  chassis.drive_distance(-9, 180, 12.0, 6.0); // backup
   intakeCylander.set(false);
   wait(0.05, sec);
   chassis.turn_to_angle(270); //for crossing
@@ -310,59 +436,64 @@ void Skills()
   intakedown.stop();
   driveToXY(10, 37, 8.0, 6.0); 
   wait(0.05, sec);
-  driveToXY(18.8, 24.9, 8.0, 6.0); //to long goal
+  driveToXY(18.4, 24.9, 8.0, 6.0); //to long goal
   wait(0.05, sec);
-  chassis.turn_to_angle(181); //face long goal
+  chassis.turn_to_angle(183); //face long goal
   wait(0.05, sec);
-  chassis.drive_distance(15, 180, 6.0, 4.0); // to long goal prepare 
+  chassis.drive_distance(15.5, 181, 8.0, 4.0); // to long goal prepare 
   wait(0.05, sec);
-  intake.spin(forward, 10, volt);
-  intakedown.spin(forward, 10, volt);
   pushCylinder.set(true); 
-  intakedown.spin(reverse, 10, volt);
-  intake.spin(reverse, 10, volt);
+  intakedown.spin(reverse, 12, volt);
+  intake.spin(reverse, 12, volt);
   wait(0.1, sec);
-  intakedown.spin(forward, 10, volt);
-  intake.spin(forward, 10, volt);
+  intakedown.spin(forward, 12, volt);
+  intake.spin(forward, 14, volt);
   wait(0.1, sec);
-  chassis.drive_distance(4, 180, 4, 6);
-  wait(0.8, sec);
+  chassis.drive_distance(2.5, 182, 8, 6);
+  wait(1, sec);
   pushCylinder.set(false); 
-  chassis.drive_distance(-7, 180, 4.0, 4.0); // backup
+  chassis.drive_distance(-7, 180, 10.0, 4.0); // backup
   wait(0.05, sec);
   // ========== PHASE 4: Loader 2 and score 6 ==========
-  chassis.turn_to_angle(5); //face loader
+  chassis.turn_to_angle(2); //face loader
   wait(0.05, sec);
-  chassis.drive_distance(5, 0, 4, 4);
+  chassis.drive_distance(5, 0, 10, 10);
   wait(0.05, sec);
   intakeCylander.set(true);
-  chassis.drive_distance(15, 0, 8.0, 6.0); // into loader 2
-  wait(.7, sec); //load 6 blocks
-  chassis.drive_distance(-12, 0, 8.0, 6.0); // backup
-  intakeCylander.set(false);
-  chassis.turn_to_angle(185); //face long goal
   wait(0.05, sec);
-  chassis.drive_distance(5, 180, 4.0, 4.0); // to long goal prepare 
+  chassis.drive_distance(16, 0, 11.0, 6.0); // into loader 2
+  wait(0.7, sec); //load 6 blocks
+  chassis.drive_distance(-12, 0, 10.0, 6.0); // backup
+  intakeCylander.set(false);
+  chassis.turn_to_angle(182); //face long goal
+  wait(0.05, sec);
+  chassis.drive_distance(8, 182, 8.0, 4.0); // to long goal prepare 
   wait(0.05, sec);
   pushCylinder.set(true); 
-  intakedown.spin(reverse, 10, volt);
-  intake.spin(reverse, 10, volt);
-  wait(0.1, sec);
-  intakedown.spin(forward, 10, volt);
-  intake.spin(forward, 10, volt);
-  wait(0.1, sec);
-  chassis.drive_distance(4, 180, 4, 6);
-  wait(0.8, sec);
-  chassis.drive_distance(-7, 180, 4.0, 4.0); // backup
-  wait(0.05, sec);/*
+  chassis.drive_distance(2, 182, 8.0, 4.0);
+  intakedown.spin(reverse, 12, volt);
+  intake.spin(reverse, 12, volt);
+  wait(0.2, sec);
+  intakedown.spin(forward, 12, volt);
+  intake.spin(forward, 14, volt);
+  wait(3, sec); //score
+  pushCylinder.set(false); 
+  chassis.drive_distance(-10, 180, 8.0, 4.0); // backup
+  wait(0.05, sec);
+  chassis.drive_distance(10.4, 180, 15.0, 12.0); // push a bit
+  wait(0.05, sec);
+  chassis.drive_distance(-7, 180, 8.0, 4.0); // backup
+  wait(0.05, sec);
 
   // ========== PHASE 4: Loader 3 ==========
-  driveToXY(115, 18, 8.0, 6.0); //dont know if it would touch  blue parking
+  driveToXY(116.8, 25, 10.0, 6.0); //dont know if it would touch blue parking
   wait(0.05, sec);
-  chassis.turn_to_angle(0); //face loader 3
+  chassis.turn_to_angle(2); //face loader 3
+  wait(0.05, sec);
   intakeCylander.set(true);
-  chassis.drive_distance(15, 0, 8.0, 6.0); // into loader 3  
-  wait(.7, sec); //load 6 blocks
+  wait(0.05, sec);
+  chassis.drive_distance(21, 0, 10.0, 6.0); // into loader 3  
+  wait(0.7, sec); //load 6 blocks
   chassis.drive_distance(-12, 0, 8.0, 6.0); // backup
   intakeCylander.set(false);
   chassis.turn_to_angle(90); //for crossing
@@ -370,17 +501,17 @@ void Skills()
 
   // ========== PHASE 5: Drive across the field to score in long goal ==========
   
-  driveToXY(132.3, 50.4, 8.0, 6.0); // cross the field
+  driveToXY(131, 48, 8.0, 6.0); // cross the field
   wait(0.05, sec);
   intake.stop();
   intakedown.stop();
   driveToXY(126.4, 104.4, 8.0, 6.0); 
   wait(0.05, sec);
-  driveToXY(121.6, 115.5, 8.0, 6.0); // to long goal
+  driveToXY(119, 115.5, 8.0, 6.0); // to long goal
   wait(0.05, sec);
-  chassis.turn_to_angle(0); //face long goal
+  chassis.turn_to_angle(2); //face long goal
   wait(0.05, sec);
-  chassis.drive_distance(15, 0, 4.0, 4.0); // to long goal prepare 
+  chassis.drive_distance(22, 2, 8.0, 4.0); // to long goal prepare 
   wait(0.05, sec);
   pushCylinder.set(true); 
   intakedown.spin(reverse, 10, volt);
@@ -389,43 +520,56 @@ void Skills()
   intakedown.spin(forward, 10, volt);
   intake.spin(forward, 10, volt);
   wait(0.1, sec);
-  chassis.drive_distance(4, 0, 4, 6);
+  chassis.drive_distance(2.5, 0, 6, 6);
   wait(0.8, sec);
-  chassis.drive_distance(-7, 0, 4.0, 4.0); // backup
+  chassis.drive_distance(-6, 0, 6.0, 4.0); // backup
   wait(0.05, sec);
+  chassis.drive_distance(7, 0, 15.0, 12.0); // push a bit
+  wait(0.05, sec);
+  chassis.drive_distance(-6, 0, 6.0, 4.0); // backup
+  wait(0.05, sec);
+  pushCylinder.set(false);
 
   // ========== PHASE 6: Loader 4 and score 6 ==========
-  chassis.turn_to_angle(180); //face loader
+  chassis.turn_to_angle(190); //face loader
   intakeCylander.set(true);
-  chassis.drive_distance(15, 180, 8.0, 6.0); // into loader 4
-  wait(.7, sec); //load 6 blocks
+  chassis.drive_distance(19, 182, 10.0, 6.0); // into loader 4
+  wait(1.5, sec); //load 6 blocks
+  chassis.drive_distance(4, 182, 8.0, 6.0); // backup
   chassis.drive_distance(-12, 180, 8.0, 6.0); // backup
   intakeCylander.set(false);
-  chassis.turn_to_angle(0); //face long goal
+  chassis.turn_to_angle(2); //face long goal
   wait(0.05, sec);
-  chassis.drive_distance(5, 0, 4.0, 4.0); // to long goal prepare 
+  chassis.drive_distance(7, 2, 6.0, 4.0); // to long goal prepare 
   wait(0.05, sec);
-  shooter.set(true); 
-  chassis.drive_distance(4, 0, 6, 6);
   pushCylinder.set(true); 
-  intakedown.spin(reverse, 10, volt);
-  intake.spin(reverse, 10, volt);
-  wait(0.1, sec);
-  intakedown.spin(forward, 10, volt);
-  intake.spin(forward, 10, volt);
-  wait(0.1, sec);
-  chassis.drive_distance(4, 0, 4, 6);
-  wait(0.8, sec);
-  chassis.drive_distance(-7, 0, 4.0, 4.0); // backup
-  wait(0.05, sec)
+  chassis.drive_distance(5, 2, 8.0, 4.0);
+  intakedown.spin(reverse, 12, volt);
+  intake.spin(reverse, 12, volt);
+  wait(0.2, sec);
+  intakedown.spin(forward, 12, volt);
+  intake.spin(forward, 14, volt);
+  wait(3, sec); //score
+  pushCylinder.set(false); 
+  chassis.drive_distance(-7, 0, 6.0, 4.0); // backup
+  wait(0.05, sec);
+  intake.stop();
+  intakedown.stop();
+  pushCylinder.set(false);
 
   // ========== PHASE 7: parking ==========
-  driveToXY(97, 133, 8.0, 6.0); // to parking zone
+  chassis.turn_to_angle(45); //backward face parking zone
+  driveToXYBackward(100, 135, 8.0, 6.0); // to parking zone
   wait(0.05, sec);
-  chassis.turn_to_angle(270); //face parking zone
+  chassis.turn_to_angle(85); //face parking zone
   wait(0.05, sec);
-  chassis.drive_distance(27, 270, 10.0, 6.0); // into parking zone
-*/
+  chassis.drive_distance(-45, 95, 12.0, 12.0); // into parking zone
+  wait(0.05, sec);
+  chassis.drive_distance(5, 90, 12.0, 12.0); // adjust position in parking zone
+  wait(0.1, sec);
+  chassis.drive_distance(-20, 90, 12.0, 12.0); // adjust position in parking zone
+  wait(0.05, sec);
+  chassis.drive_distance(5, 90, 12.0, 12.0); // adjust position in parking zone
 
 }
 //--------------------------------------------------------
