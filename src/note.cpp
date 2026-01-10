@@ -3,15 +3,15 @@ using namespace vex;
 vex::color selectedTeamColor = vex::color::black;
 int autonoteTask()
 {
-    /*// ================================= 設定隊伍顏色 ===================================
-    OpticalFirst.setLightPower(100, percent);
+    // ================================= 設定隊伍顏色 ===================================
+    Optical.setLightPower(100, percent);
     while (true)
     {
         // 啟用 Optical Sensor 的光源
         
 
         // 設定隊伍顏色
-        if (Controller1.ButtonLeft.pressing())
+    /*    if (Controller1.ButtonLeft.pressing())
         {
             selectedTeamColor = vex::color::red; // 紅隊
             Optical.setLightPower(100, percent); // 開啟燈光
@@ -26,12 +26,12 @@ int autonoteTask()
             selectedTeamColor = vex::color::black; // 無隊伍（禁用）
             Optical.setLightPower(0, percent);     // 關閉燈光
         }*/
-        /*if (OpticalFirst.isNearObject())
+        if (Optical.isNearObject())
         {
 
             if (selectedTeamColor != vex::color::black)
             {
-                vex::color detectedColor = OpticalFirst.color();
+                vex::color detectedColor = Optical.color();
 
                 if (selectedTeamColor == vex::color::red)
                 {
@@ -71,6 +71,6 @@ int autonoteTask()
                 
             }
         }
-    }*/
+    }
     return 0;
 }

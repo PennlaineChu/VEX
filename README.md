@@ -61,7 +61,7 @@ VEX-1/
 |-----------|------|-------|
 | Inertial | 20 | IMU for heading and orientation |
 | Optical | 10 | Ring detection |
-| OpticalSecond | 16 | Mobile goal detection |
+| Optical_go | 16 | Mobile goal detection |
 | Vision | 13, 15 | Vision sensors for object detection |
 
 ### Digital Outputs (Pneumatics/Lights)
@@ -69,7 +69,7 @@ VEX-1/
 | Device | Port | Notes |
 |--------|------|-------|
 | pushCylinder | B | Push mechanism |
-| intakeCylinder | C | Intake cylinder |
+| intakeCylander | C | Intake cylinder |
 | redlight | H | Red LED indicator |
 | whitelight | G | White LED indicator |
 | shooter | A | Shooter mechanism |

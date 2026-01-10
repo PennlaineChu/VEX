@@ -8,23 +8,23 @@ competition Competition;
 
 
 Drive chassis(
-    // Specify your drive setup below. There are eight options:
-    // ZERO_TRACKER_NO_ODOM, ZERO_TRACKER_ODOM, TANK_ONE_ENCODER, TANK_ONE_ROTATION, TANK_TWO_ENCODER, TANK_TWO_ROTATION, HOLONOMIC_TWO_ENCODER, HOLONOMIC_TWO_ROTATION, and HOLONOMIC_THREE_ROTATION
-    // For holonomic drive with 3 tracking wheels (left, right, back), use HOLONOMIC_THREE_ROTATION:
-    HOLONOMIC_THREE_ROTATION,
+    // Specify your drive setup below. There are seven options:
+    // ZERO_TRACKER_NO_ODOM, ZERO_TRACKER_ODOM, TANK_ONE_ENCODER, TANK_ONE_ROTATION, TANK_TWO_ENCODER, TANK_TWO_ROTATION, HOLONOMIC_TWO_ENCODER, and HOLONOMIC_TWO_ROTATION
+    // For example, if you are not using odometry, put ZERO_TRACKER_NO_ODOM below:
+    ZERO_TRACKER_ODOM,
     // Add the names of your Drive motors into the motor groups below, separated by commas, i.e. motor_group(Motor1,Motor2,Motor3).
-    // For holonomic drives, these can be empty motor groups since we use individual motors:
+    // You will input whatever motor names you chose when you configured your robot using the sidebar configurer, they don't have to be "Motor1" and "Motor2".
     // Left Motors:
-    motor_group(),
+    motor_group(L1, L2, L3),
     // Right Motors:
-    motor_group(),
+    motor_group(R1, R2, R3),
     // Specify the PORT NUMBER of your inertial sensor, in PORT format (i.e. "PORT1", not simply "1"):
-    PORT18,
+    PORT20,
     // Input your wheel diameter: 3.25 inches
     3.25,
     // External gear ratio: USER MEASURED - 360° motor = 3.25*PI*0.75 inches
     // This means 1 motor rotation = 0.75 wheel rotations, so ratio = 0.75
-    1,
+    0.75,
     // Gyro scale, this is what your gyro reads when you spin the robot 360 degrees.
     // For most cases 360 will do fine here, but this scale factor can be very helpful when precision is necessary.
     360,
@@ -35,25 +35,28 @@ Drive chassis(
     /*  If you are not using position tracking, leave the rest of the values as  */
     /*  they are.                                                                */
     /*---------------------------------------------------------------------------*/
-    // FOR HOLONOMIC DRIVES: Input your drive motors by position.
+    // If you are using ZERO_TRACKER_ODOM, you ONLY need to adjust the FORWARD TRACKER CENTER DISTANCE.
+    // FOR HOLONOMIC DRIVES ONLY: Input your drive motors by position. This is only necessary for holonomic drives, otherwise this section can be left alone.
     // LF:      //RF:
-    PORT19, -PORT9,  // Top right motor - reversed
+    PORT12, -PORT14,
     // LB:      //RB:
-    PORT20, -PORT10,  // Bottom right motor reversed (negative port)
-    // Legacy tracker ports (not used for HOLONOMIC_THREE_ROTATION, but required by constructor):
-    // Use valid ports (PORT4 and PORT10) for unused trackers to avoid memory permission errors
-    PORT3, 0.0, 0.0,  // Forward tracker (not used, but needs valid port)
-    PORT3, 0.0, 0.0,  // Sideways tracker (not used, but needs valid port)
-    // 3-Wheel Odometry Tracking Wheels:
-    PORT17,   // Left tracker port (5.625" from center, 3.25" wheel)
-    3.25,    // Left tracker diameter (inches)
-    5.625,   // Left tracker center distance from center (inches)
-    PORT7,   // Right tracker port (5.625" from center, 3.25" wheel)
-    3.25,    // Right tracker diameter (inches)
-    5.625,   // Right tracker center distance from center (inches)
-    PORT8,   // Back tracker port (4.25" from center, 2" wheel)
-    2.0,     // Back tracker diameter (inches)
-    4.25     // Back tracker center distance from center (inches)
+    PORT13, -PORT20,
+    // If you are using position tracking, this is the Forward Tracker port (the tracker which runs parallel to the direction of the chassis).
+    // If this is a rotation sensor, enter it in "PORT1" format, inputting the port below.
+    // If this is an encoder, enter the port as an integer. Triport A will be a "1", Triport B will be a "2", etc.
+    5,
+    // Input the Forward Tracker diameter (reverse it to make the direction switch):
+    -3.25,
+    // Input Forward Tracker center dist_to_target (a positive dist_to_target corresponds to a tracker on the right side of the robot, negative is left.)
+    // For a zero tracker tank drive with odom, put the positive dist_to_target from the center of the robot to the right side of the drive.
+    // This dist_to_target is in inches:
+    5.2,
+    // Input the Sideways Tracker Port, following the same steps as the Forward Tracker Port:
+    1,
+    // Sideways tracker diameter (reverse to make the direction switch):
+    -2.75,
+    // Sideways tracker center dist_to_target (positive dist_to_target is behind the center of the robot, negative is in front):
+    5.5
 );
 // ---- helpers ----
 static inline double clampd(double v, double lo, double hi){ return v<lo?lo:(v>hi?hi:v); }
@@ -66,7 +69,7 @@ static const double PI = 3.14159265358979323846;
 // Gearing: USER MEASURED - 360° motor rotation = 3.25*PI*0.75 inches
 // This means 1 motor rotation = 0.75 wheel rotations, so gear ratio = 0.75
 static const double WHEEL_DIAM_IN  = 3.25;
-static const double EXT_GEAR_RATIO = 1;  // USER MEASURED: 360° motor = 0.75 wheel circumference
+static const double EXT_GEAR_RATIO = 0.75;  // USER MEASURED: 360° motor = 0.75 wheel circumference
 static const double WHEEL_CIRC_IN  = PI * WHEEL_DIAM_IN;
 
 // Pre-calculated constant for better precision (reduces floating-point rounding errors)
@@ -700,7 +703,7 @@ void recordPath() {
   while(isRecording) {
     // ========== ENABLE MANUAL DRIVING DURING RECORDING ==========
     // Read joystick inputs and control robot
-    chassis.control_holonomic();  // Enable holonomic drive control
+    chassis.control_tank(100);  // Enable tank drive control
     
     // Button A: Record waypoint (with debounce)
     bool currentButtonA = Controller1.ButtonA.pressing();
@@ -1077,41 +1080,6 @@ void driveToXYBackward(double targetX, double targetY, double maxV, double turnM
     chassis.drive_distance(-distance, currentHeading, maxV, turnMaxV);
 }
 
-// ========== DRIVE BACKWARD TO TARGET X COORDINATE AT SPECIFIED HEADING ==========
-// Drive backward to a target X coordinate while maintaining a specific heading
-// Calculates the Y coordinate that results in the desired heading, then drives backward
-// Useful for backing up to a specific X position while facing a direction
-void driveToXAtHeadingBackward(double targetX, double targetHeading, double maxV, double turnMaxV) {
-    // Calculate the Y coordinate that results in the desired heading
-    // heading = atan2(dx, -dy) * 180 / PI
-    // So: tan(heading * PI / 180) = dx / (-dy)
-    // So: -dy = dx / tan(heading * PI / 180)
-    // So: dy = -dx / tan(heading * PI / 180)
-    // So: targetY = robot_pose.y + dy = robot_pose.y - dx / tan(heading * PI / 180)
-    
-    double dx = targetX - robot_pose.x;
-    double heading_rad = targetHeading * PI / 180.0;
-    
-    // Handle vertical headings (90° or 270°) where tan is undefined
-    if(std::fabs(std::cos(heading_rad)) < 0.001) {
-        // Heading is approximately 90° or 270° (moving purely in Y direction)
-        // In this case, we can't reach a specific X while maintaining this heading
-        // Just drive backward straight at the heading
-        double distance = std::fabs(dx);  // Use a reasonable distance
-        chassis.turn_to_angle(targetHeading);
-        vex::wait(50, vex::msec);
-        chassis.drive_distance(-distance, targetHeading, maxV, turnMaxV);
-        return;
-    }
-    
-    // Calculate target Y coordinate
-    double dy = -dx / std::tan(heading_rad);
-    double targetY = robot_pose.y + dy;
-    
-    // Now drive backward to the calculated X,Y coordinate
-    driveToXYBackward(targetX, targetY, maxV, turnMaxV);
-}
-
 // ========== TURN TO FACE X,Y COORDINATES ==========
 // Turn to face a specific point (useful before grabbing objects)
 void turnToXY(double targetX, double targetY, double turnMaxV) {
@@ -1260,113 +1228,83 @@ bool auto_started = false;
 bool airspace = false;
 bool ran_auton = false; // 是否已經跑auto模式
 
+void wingSwitch()
+{
+  wing = !wing;
+}
 
 void cylinderSwitch()
 {
-  intakeCylinder = !intakeCylinder;
+  intakeCylander = !intakeCylander;
 }
-void intakeCylinderon()
+void intakecylanderon()
 {
   airspace = !airspace;
-  intakeCylinder = airspace;
+  intakeCylander = airspace;
 }
-void intakeCylinderoff()
+void intakecylanderoff()
 {
-  intakeCylinder = false;
+  intakeCylander = false;
 }
-void blockswitch()
+void shooterSwitch()
 {
-  blockCylinder = !blockCylinder;
+    shooter = !shooter;
+
 }
-void park(){
-  trackingWheel = true;
+void shooterOn()  
+  {
+   shooter = true;  
+  }
+void shooterOff() {
+   shooter = false; 
+  }
+
+void pushSwitch()
+{
+  pushCylinder = !pushCylinder;
 }
+void pushON()  
+  {
+   pushCylinder = true;  
+  }
+void pushOFF() {
+   pushCylinder = false; 
+  }
+bool shooterPushOn = false;
 
-
-
-// ========== Color Sorting Background Task ==========
-// Color sorting modes
-enum ColorSortMode {
-  COLOR_SORT_LID = 1,      // Mode 1: Close/open lid through blockCylinder
-  COLOR_SORT_SHOOTER = 2,  // Mode 2: Spin shooterLower forward if wrong color
-  COLOR_SORT_INTAKE = 3    // Mode 3: Stop intake1 if wrong color
-};
-
-// Global flags for color sorting control
-static bool colorSortEnabled = false;
-static vex::color targetColor = vex::color::black;
-static ColorSortMode colorSortMode = COLOR_SORT_SHOOTER;
-
-// Enable/disable color sorting with mode selection
-// mode: 1 = lid control, 2 = shooter control, 3 = intake control
-void enableColorSort(vex::color color, int mode = 1) {
-  colorSortEnabled = true;
-  targetColor = color;
-  colorSortMode = (ColorSortMode)mode;
-}
-
-void disableColorSort() {
-  colorSortEnabled = false;
+void shooterPushSwitch() {
+    shooterPushOn = !shooterPushOn;
+    shooter = shooterPushOn; 
+    pushCylinder = shooterPushOn;  
 }
 
-// Background task for color sorting - runs continuously, only active when enabled
-// Start this once in autonomous: task colorSort(ColorSortTask);
-// Then use enableColorSort(vex::color::red, 1) for lid mode
-// Or enableColorSort(vex::color::red, 2) for shooter mode
-// Or enableColorSort(vex::color::red, 3) for intake mode
-// Use disableColorSort() to turn it off
-int ColorSortTask() {
-  while(true) {
-    // Only process if enabled
-    if(colorSortEnabled && targetColor != vex::color::black) {
-      if(OpticalFirst.isNearObject()) {
-        vex::color detectedColor = OpticalFirst.color();
-        bool isWrongColor = false;
-        
-        // Determine if wrong color
-        if(targetColor == vex::color::red) { //want red
-          isWrongColor = (detectedColor == vex::color::blue); //see blue
-        } else if(targetColor == vex::color::blue) { //want blue
-          isWrongColor = (detectedColor != vex::color::blue); //see red
-        }
-        
-        // Handle based on mode
-        switch(colorSortMode) {
-          case COLOR_SORT_LID: {
-            // Mode 1: Close/open lid through blockCylinder
-            if(isWrongColor) {
-              blockCylinder = false; // Close lid to block wrong color
-            } else {
-              blockCylinder = true; // Open lid to allow correct color
-            }
-            break;
-          }
-          
-          case COLOR_SORT_SHOOTER: {
-            // Mode 2: If wrong color, spin shooterLower forward (should be reverse)
-            if(isWrongColor) {
-              shooterLower.spin(forward, 12, volt); // Spin forward to reverse direction
-              blockCylinder = false; // Close lid to block block from falling out
-            } else {
-              // Correct color - let shooter run normally (don't interfere)
-              // shooterLower will be controlled by other code
-            }
-            break;
-          }
-          
-          case COLOR_SORT_INTAKE: {
-            // Mode 3: If wrong color, stop intake1 (should be scoring/reverse)
-            if(isWrongColor) {
-              intake1.stop(brake); // Stop intake when wrong color
-            } else {
-              // Correct color - let intake run normally (don't interfere)
-              // intake1 will be controlled by other code
-            }
-            break;
-          }
-        }
-      }
+int opticalLightTask() {
+  int lightPower = 100;
+  Optical.setLightPower(lightPower, percent);
+  Optical_go.setLightPower(lightPower, percent);
+  while(true){
+    if(Controller1.ButtonUp.pressing()){
+      lightPower += 10;
+      if(lightPower >= 100) lightPower = 100;
+      Optical.setLightPower(lightPower, percent);
+      Optical_go.setLightPower(lightPower, percent);
+      wait(50, msec);
+    }else if(Controller1.ButtonDown.pressing()){
+      lightPower -= 10;
+      if(lightPower <= 0) lightPower = 0;  
+      Optical.setLightPower(lightPower, percent);
+      Optical_go.setLightPower(lightPower, percent);
+      wait(50, msec);
     }
+    
+    if(lightPower > 0 && pushCylinder){
+      Optical.setLight(ledState::on);
+      Optical_go.setLight(ledState::on);
+    }else{
+      Optical.setLight(ledState::off);
+      Optical_go.setLight(ledState::off);
+    }
+    
     wait(50, msec);
   }
   return 0;
@@ -1386,35 +1324,6 @@ static inline void strokeRect(const Rect& r, vex::color pen) {
   Brain.Screen.setPenColor(pen);
   Brain.Screen.drawRectangle(r.x, r.y, r.w, r.h, vex::transparent);
 }
-void drawLogo() {
-  static const char* imageColors[] = {
-      "#fdbe00", "#fdbf00", "#fcbe00", "#ffb600", "#fcbd00", "#fdbd00", "#ffbe00", "#ffb900", "#fcbf00", "#fbbf00", "#ff8000", "#fabe00", "#ffcc00", "#ffbf00", "#ffbc00", "#fbbc00", "#fbbe00", "#ffbb00", "#ffff00", "#ffc100", "#ffc200", "#ffba00", "#f9c100", "#ffc600", "#fbbd00", "#ffbd00", "#fabf00", "#fac100", "#ffc400", "#ffb300", "#ffaa00", "#ffc300", "#ffb800", "#f9be00", "#fabc00", "#f9bf00", "#f9bc00", "#fabd00", 
-  };
-
-  static const int imageIndices[] = {
-      -1, 0, 1, 2, 3, -1, 4, 1, 5, 6, -1, 7, 8, 1, 5, 9, 10, -1, 11, 0, 1, 0, 2, 12, -1, 1, 5, 13, -1, 14, 1, 0, 14, -1, 2, 15, -1, 16, 2, 17, -1, 14, 2, 18, -1, 19, 2, 9, -1, 18, 2, 4, 7, -1, 2, 20, -1, 2, 8, -1, 16, 2, 21, -1, 22, 2, 10, -1, 19, 2, -1, 18, 2, 3, -1, 2, 5, 23, -1, 2, 13, -1, 16, 2, 4, -1, 20, 2, 0, -1, 2, 14, -1, 18, 2, 24, -1, 2, 5, -1, 2, 4, -1, 16, 2, 25, -1, 2, 26, -1, 27, 2, 0, -1, 18, 2, 3, -1, 2, -1, 16, 24, 16, 2, 1, -1, 24, 9, 15, 4, 1, 2, 5, -1, 14, 2, 5, 9, 16, 11, 16, 2, 4, -1, 8, 2, 8, 9, 4, 2, 24, -1, 9, 5, 2, 4, -1, 26, 24, 2, -1, 28, 2, 1, -1, 8, 2, 8, -1, 9, 2, 9, -1, 18, 2, 14, -1, 2, 16, -1, 26, 2, 3, -1, 4, 2, 16, -1, 10, 2, -1, 13, 9, 2, 9, -1, 8, 2, 8, 18, 2, -1, 19, 2, 0, -1, 24, 2, 0, -1, 26, 2, 13, -1, 2, -1, 13, 0, 2, -1, 29, 2, 8, 2, 0, 12, -1, 19, 2, 24, 13, 2, 26, -1, 2, -1, 2, 0, 13, 12, -1, 3, 2, 30, -1, 26, 2, 5, -1, 10, 16, 2, 14, -1, 14, 2, 26, -1, 20, 2, 4, 8, 2, 13, -1, 1, 2, -1, 24, 2, -1, 21, 2, 26, -1, 14, 0, 2, 0, -1, 13, 8, 2, 16, -1, 14, 2, 12, 0, 2, -1, 8, 2, -1, 17, 2, 8, -1, 13, 2, -1, 27, 2, 0, -1, 31, 0, 2, 16, 7, -1, 14, 2, 16, -1, 24, 2, -1, 2, 18, -1, 4, 2, 18, -1, 13, 2, 8, -1, 13, 8, 2, 27, -1, 25, 24, 2, 8, 4, 12, -1, 14, 2, 16, 18, 1, 2, -1, 4, 2, -1, 32, 2, 16, -1, 13, 2, -1, 28, 2, 16, 0, 32, -1, 29, 0, 2, 16, 19, -1, 14, 2, 9, 4, 2, 17, -1, 16, 2, -1, 0, 2, 8, -1, 13, 2, 11, -1, 2, 4, 9, 18, -1, 0, 2, 23, -1, 10, 31, 33, 2, 5, 24, 2, -1, 8, 2, -1, 2, 26, 31, 19, 14, 2, -1, 10, 31, 20, 9, 2, 0, -1, 34, 2, 16, 5, 20, -1, 2, 24, 14, -1, 24, 2, 24, 23, 2, 8, -1, 6, 2, 16, -1, 8, 2, 0, -1, 35, 2, 28, -1, 2, -1, 16, 2, 4, 15, 18, -1, 2, 29, -1, 16, 2, 9, -1, 2, 8, -1, 18, 2, 24, -1, 2, 5, -1, 13, 2, 13, -1, 2, 16, -1, 2, 34, -1, 2, 0, 2, 16, -1, 19, 14, 27, 11, 2, 5, -1, 2, 16, 4, 24, 9, 8, 2, 16, 18, -1, 4, 2, 15, 11, 2, 0, -1, 14, 2, -1, 8, 2, -1, 2, -1, 16, 2, 14, -1, 30, 16, 2, 8, -1, 15, 2, 9, -1, 18, 2, 20, -1, 2, -1, 0, 2, -1, 16, 2, -1, 16, 2, 0, 13, -1, 2, 19, -1, 18, 2, -1, 2, -1, 13, 24, 2, -1, 16, 2, 14, -1, 0, 2, 19, -1, 13, 2, 9, -1, 18, 2, 17, -1, 10, 2, -1, 19, 0, 2, -1, 16, 2, 16, 22, -1, 15, 0, 2, 7, -1, 13, 0, 2, 0, 18, -1, 18, 2, 36, -1, 21, 2, -1, 13, 2, 16, 2, 8, 24, 8, -1, 16, 2, 16, 4, 13, -1, 18, 15, 0, 1, 24, 8, 2, 5, 19, -1, 12, 8, 2, 8, 20, -1, 18, 2, 24, 26, 18, -1, 18, 15, 9, 2, 1, -1, 13, 33, 2, 4, 9, 35, 32, -1, 16, 2, 13, -1, 4, 2, 15, -1, 27, 2, 4, 24, 12, -1, 2, 11, -1, 2, 8, 2, 9, 13, 18, -1, 25, 0, 2, 9, 2, 7, -1, 2, 17, -1, 2, -1, 5, 2, 0, 3, -1, 2, 16, -1, 8, 2, 24, -1, 23, 2, 24, 30, -1, 2, 17, -1, 16, 2, -1, 5, 2, 13, -1, 2, 16, -1, 8, 2, 13, -1, 9, 2, 29, -1, 2, 17, -1, 2, -1, 5, 2, 13, -1, 2, 16, -1, 8, 2, 16, 25, -1, 18, 4, 2, -1, 2, 17, -1, 18, 2, 30, -1, 5, 2, 0, -1, 2, 16, -1, 8, 2, 8, 18, -1, 13, 2, 11, -1, 2, 17, -1, 17, 2, 13, -1, 5, 2, 13, -1, 2, 16, -1, 8, 2, -1, 4, 2, -1, 2, 17, -1, 14, 2, 24, -1, 5, 2, 0, -1, 2, 16, -1, 8, 2, -1, 4, 2, 17, -1, 2, 17, -1, 26, 2, 8, -1, 5, 2, 18, -1, 2, 16, -1, 8, 2, 19, -1, 37, 2, 4, -1, 2, 17, -1, 16, 2, 5, 11, 17, 13, 29, 33, 9, 5, 2, 1, -1, 5, 2, 33, -1, 2, 16, -1, 8, 2, 1, 24, 2, 8, -1, 19, 2, 1, 19, 2, 0, -1, 2, 17, -1, 4, 2, 25, 30, 2, 8, 2, -1, 5, 2, 23, 14, 2, 0, -1, 2, 1, -1, 8, 2, 8, -1, 11, 2, 5, -1, 13, 2, 0, -1, 2, 16, -1, 2, 9, 13, -1, 1, 2, 9, 13, 1, 2, 8, -1, 5, 2, -1, 19, 2, 4, -1, 2, 23, -1, 8, 2, 8, -1, 2, -1, 2, 5, -1, 13, 2, -1, 2, -1, 0, 2, 33, 37, 5, 2, 0, -1, 5, 2, -1, 30, 2, -1, 2, -1, 8, 2, 8, -1, 2, -1, 2, 1, -1, 0, 2, -1, 2, -1, 19, 16, 2, -1, 5, 2, -1, 2, 24, -1, 2, -1, 8, 2, 8, -1, 2, -1, 16, 2, 5, -1, 2, -1, 2, -1, 21, 14, 2, 3, -1, 5, 2, -1, 2, -1, 2, -1, 8, 2, 8, -1, 2, -1, 0, 2, 0, -1, 16, 2, 16, -1, 2, -1, 24, 34, 1, 2, 22, -1, 5, 2, -1, 2, -1, 2, -1, 8, 2, 8, -1, 2, 16, -1, 2, 5, -1, 29, 2, 5, -1, 2, -1, 29, 2, 15, 8, 2, 8, 2, -1, 5, 2, -1, 2, -1, 2, -1, 8, 2, 8, -1, 2, 5, -1, 2, 5, -1, 8, 2, 24, -1, 2, -1, 6, 2, 11, 2, 4, -1, 13, 2, 5, -1, 5, 2, -1, 2, -1, 2, -1, 8, 2, 8, -1, 26, 2, 11, -1, 2, 16, 9, 2, 13, -1, 2, 13, -1, 9, 2, 36, 24, 2, 14, -1, 5, 2, 9, -1, 5, 2, -1, 13, 2, 0, -1, 2, -1, 8, 2, 5, 24, 2, 18, -1, 2, -1, 2, 17, -1, 2, 0, 24, 2, -1, 10, 0, 2, -1, 5, 2, -1, 4, 2, 16, -1, 2, 16, -1, 8, 2, 1, -1, 2, 6, -1, 2, 17, -1, 1, 2, 8, 2, 7, -1, 0, 2, -1, 5, 2, 0, 2, 13, -1, 2, 16, -1, 8, 2, 0, 30, -1, 2, 8, -1, 2, 17, -1, 2, 8, 1, 19, -1, 2, -1, 5, 2, -1, 2, 16, -1, 8, 2, 19, -1, 2, 0, 19, -1, 2, 17, -1, 2, -1, 10, 4, 2, 13, -1, 5, 2, 13, -1, 2, 16, -1, 8, 2, 5, 0, 28, -1, 2, 16, 14, -1, 2, 17, -1, 16, 2, 0, -1, 16, 2, 25, -1, 5, 2, 4, -1, 2, 16, -1, 8, 2, 9, -1, 2, 25, -1, 2, 17, -1, 2, 0, -1, 26, 2, 15, -1, 5, 2, 31, -1, 2, 16, -1, 8, 2, 14, -1, 2, 13, -1, 2, 17, -1, 14, 2, 4, -1, 13, 2, 8, -1, 5, 2, 27, -1, 2, 16, -1, 8, 2, 8, -1, 2, 1, 2, -1, 2, 17, -1, 26, 2, 17, -1, 23, 2, 0, -1, 5, 2, 11, -1, 2, 16, -1, 8, 2, 4, 2, 14, -1, 2, 19, -1, 19, 2, -1, 2, 17, -1, 4, 2, 27, -1, 13, 2, 8, -1, 5, 2, 16, 3, -1, 2, 16, -1, 8, 2, -1, 2, 0, -1, 2, 19, -1, 0, 2, 10, -1, 2, 11, 30, -1, 1, 2, 16, -1, 17, 2, -1, 5, 2, 24, 9, 19, 10, -1, 2, 7, -1, 8, 2, 8, -1, 16, 2, 4, -1, 2, 19, 37, 26, 16, 2, 14, -1, 2, -1, 24, 2, -1, 5, 2, 0, -1, 5, 2, -1, 2, -1, 8, 2, 8, -1, 5, 2, 0, -1, 2, 19, 14, 2, 1, 5, 2, 8, -1, 2, -1, 2, 4, 13, -1, 0, 2, -1, 5, 2, -1, 2, -1, 8, 2, 4, -1, 2, -1, 2, 19, -1, 11, 2, 19, -1, 24, 2, 0, -1, 2, -1, 8, 2, 33, 16, 2, -1, 18, 2, 31, -1, 5, 2, -1, 2, -1, 8, 2, -1, 9, 2, 28, -1, 2, 19, -1, 19, 4, 8, -1, 11, 2, 1, -1, 2, -1, 2, 35, 8, 2, -1, 18, 16, 2, 8, 5, 2, 26, -1, 5, 2, -1, 2, -1, 8, 2, 8, -1, 14, 2, 14, -1, 2, 19, -1, 32, -1, 13, 2, 16, -1, 2, -1, 30, 2, 0, 2, -1, 13, 2, 24, 1, 0, 2, -1, 5, 2, -1, 2, -1, 8, 2, 8, -1, 13, 2, 9, -1, 2, 19, -1, 2, 16, -1, 2, -1, 13, 2, 16, 2, -1, 15, 2, 8, -1, 5, 2, -1, 2, -1, 8, 2, 4, -1, 10, 2, -1, 2, 19, -1, 10, -1, 0, 2, 24, -1, 2, -1, 15, 2, 16, -1, 8, 2, 11, -1, 5, 2, -1, 2, -1, 8, 2, -1, 2, 9, -1, 2, 19, -1, 2, 5, 7, -1, 8, 2, 16, -1, 2, 4, 29, -1, 2, 4, -1, 0, 2, 8, -1, 5, 2, -1, 2, 1, -1, 8, 2, 1, -1, 5, 2, -1, 2, 19, -1, 28, 2, 0, 2, 9, -1, 2, 17, -1, 5, 2, 19, -1, 5, 2, 8, -1, 5, 2, -1, 2, 16, -1, 8, 2, 5, -1, 2, 8, -1, 2, 19, -1, 2, 0, -1, 2, 17, -1, 16, 2, -1, 0, 2, 0, -1, 5, 2, -1, 2, 16, -1, 8, 2, 5, -1, 2, -1, 2, 19, -1, 27, 2, 0, -1, 2, 17, -1, 8, 2, 0, -1, 1, 2, -1, 5, 2, -1, 2, 16, -1, 8, 2, 0, -1, 24, 2, 10, -1, 2, 19, -1, 2, 5, -1, 2, 17, -1, 2, 13, -1, 16, 2, 31, 5, 2, -1, 2, 16, -1, 8, 2, 1, -1, 0, 2, 14, -1, 2, 19, -1, 8, 2, 5, -1, 2, 17, -1, 2, 9, -1, 17, 2, 26, 5, 2, -1, 2, 16, -1, 8, 2, 5, -1, 8, 2, 27, -1, 2, 19, -1, 30, 2, 9, -1, 2, 17, 13, 2, 14, -1, 16, 2, 8, 5, 2, -1, 2, 16, -1, 8, 2, 5, -1, 2, -1, 2, 19, -1, 5, 2, -1, 2, 17, 19, 2, 0, -1, 8, 2, 1, 5, 2, -1, 2, 16, -1, 8, 2, 0, -1, 15, 2, 8, -1, 2, 19, -1, 23, 2, 0, -1, 2, 17, 24, 2, 0, 3, -1, 5, 2, 16, 5, 2, -1, 2, 16, -1, 8, 2, 1, -1, 25, 2, 0, -1, 2, 19, -1, 1, 2, 6, -1, 2, 17, 8, 2, 11, -1, 2, 8, 5, 2, -1, 2, 16, -1, 8, 2, 5, -1, 28, 2, -1, 2, 4, 30, -1, 29, 2, -1, 5, 8, 13, 8, 4, -1, 1, 8, 16, 2, 8, 24, -1, 2, 8, -1, 24, 8, -1, 2, 8, 5, -1, 16, 2, 15, -1, 2, 19, -1, 13, 2, -1, 18, 2, 20, -1, 24, 2, 4, -1, 18, 8, 2, 13, -1, 22, 2, 8, 22, -1, 19, 4, 19, -1, 23, -1, 2, 9, -1, 23, -1, 11, 2, 8, 0, 2, 7, -1, 13, 24, 2, 13, -1, 2, 1, 19, 24, 2, 26, 4, 16, -1, 2, 0, 29, -1, 3, 0, 2, 7, -1, 5, 2, 16, -1, 15, 2, 13, -1, 13, 0, 2, 30, -1, 23, 2, 0, 10, -1, 2, 16, 2, 18, -1, 32, 16, 2, 4, -1, 4, 2, 8, 2, 16, 11, 2, 4, -1, 8, 2, 5, 2, 10, -1, 15, 4, 2, 13, -1, 15, -1, 2, 16, -1, 9, -1, 2, 0, 2, 30, -1, 13, 5, 2, 0, 30, -1, 19, 2, 1, -1, 2, 0, 13, -1, 10, 24, 4, 2, 33, -1, 23, -1, 13, 2, 0, -1, 13, -1, 7, 2, 8, 13, -1, 10, 15, 2, 8, 18, -1, 8, 5, 18, 4, 2, -1, 9, 24, -1, 22, 2, 13, -1, 30, 9, 2, 16, 3, -1, 2, 0, 2, 8, 2, 0, -1, 3, 9, 2, 8, 2, 13, -1, 14, 4, 2, 14, -1, 33, 2, 8, -1, 20, 24, 2, 9, 24, 13, -1, 13, 4, 16, 2, 11, -1, 13, 2, 11, -1, 32, 5, 2, 8, 16, 8, 13, -1, 10, 14, 8, 9, 5, 2, 9, -1, 2, 3, -1, 12, 8, 4, 2, 8, 0, 4, 13, 12, -1, 21, 9, 8, 2, 4, 37, -1, 16, 2, 0, -1, 13, 5, 2, 16, 2, 24, 0, 4, 26, 21, 13, -1, 14, 6, 9, 8, 1, 16, 4, 16, 2, 13, -1, 9, 2, -1, 32, 8, 2, 8, 2, 9, 24, 16, 1, 24, 2, 8, 4, 2, 0, 2, 1, 14, -1, 29, 2, -1, 10, 37, 0, 2, 30, -1, 2, 19, -1, 28, 2, 24, 2, 24, 1, 25, -1, 4, 2, 0, -1, 7, 15, 0, 8, 2, 16, 11, -1, 13, 2, 0, -1, 10, 22, 2, 8, 2, 0, 36, -1, 2, 13, -1, 18, 25, 8, 24, 8, 2, 0, 16, 8, 31, -1, 15, 0, 19, -1, 30, 19, 4, 1, 2, 16, 2, 0, 16, 3, -1, 30, 19, 16, 2, 5, 8, 4, 2, 24, 2, 8, 4, 9, 1, 9, 25, 30, -1, 13, 19, 35, 15, 16, 4, 2, 5, 1, 5, 2, 8, 4, 2, 9, 26, 13, 3, -1, 
-  };
-
-  static const int imageCounts[] = {
-      30416, 1, 15, 1, 1, 4, 1, 12, 1, 1, 10, 1, 1, 8, 1, 1, 1, 10, 1, 1, 7, 1, 1, 1, 5, 13, 1, 1, 5, 1, 15, 1, 1, 355, 18, 1, 3, 1, 15, 1, 6, 1, 15, 1, 6, 1, 13, 1, 3, 1, 15, 1, 1, 3, 19, 1, 353, 19, 1, 2, 1, 16, 1, 4, 1, 17, 1, 4, 1, 16, 2, 1, 17, 1, 2, 19, 1, 1, 352, 20, 1, 1, 1, 16, 1, 3, 1, 18, 1, 4, 17, 1, 1, 1, 17, 1, 2, 20, 1, 352, 20, 1, 1, 1, 17, 1, 2, 20, 1, 2, 1, 17, 1, 1, 1, 18, 1, 1, 21, 352, 1, 13, 1, 5, 1, 1, 1, 7, 1, 3, 1, 5, 1, 1, 1, 6, 1, 4, 1, 1, 1, 6, 1, 2, 1, 5, 1, 5, 1, 5, 1, 2, 12, 1, 5, 1, 1, 1, 14, 6, 366, 1, 5, 1, 14, 1, 4, 1, 1, 1, 5, 1, 8, 1, 6, 1, 1, 5, 1, 7, 1, 5, 1, 14, 1, 4, 1, 15, 1, 6, 364, 1, 1, 6, 1, 14, 1, 4, 1, 1, 6, 10, 1, 5, 1, 1, 1, 4, 1, 7, 1, 5, 1, 14, 6, 13, 1, 1, 7, 361, 1, 1, 1, 7, 1, 1, 13, 1, 5, 1, 1, 5, 1, 11, 6, 1, 5, 1, 1, 1, 4, 1, 6, 1, 13, 1, 5, 1, 10, 1, 1, 9, 1, 359, 1, 11, 1, 9, 1, 10, 1, 1, 5, 1, 11, 1, 5, 1, 1, 18, 9, 1, 10, 1, 8, 1, 1, 10, 1, 357, 1, 2, 11, 1, 10, 1, 10, 1, 1, 5, 12, 1, 5, 1, 1, 17, 1, 9, 1, 10, 7, 1, 12, 1, 356, 1, 1, 12, 1, 1, 11, 1, 9, 1, 1, 1, 5, 12, 6, 1, 1, 1, 16, 1, 9, 1, 9, 1, 4, 1, 1, 13, 1, 356, 1, 1, 10, 1, 1, 1, 13, 1, 9, 1, 1, 1, 5, 12, 1, 5, 1, 1, 17, 1, 9, 1, 10, 3, 1, 11, 1, 1, 1, 357, 1, 1, 9, 1, 1, 16, 1, 10, 1, 1, 5, 1, 11, 1, 5, 1, 1, 17, 1, 9, 1, 10, 1, 2, 10, 1, 1, 1, 359, 1, 9, 1, 18, 1, 4, 1, 5, 1, 1, 6, 11, 1, 5, 1, 6, 1, 4, 1, 1, 6, 9, 1, 3, 1, 1, 5, 1, 1, 1, 7, 1, 1, 1, 362, 6, 1, 1, 27, 1, 4, 1, 1, 5, 1, 10, 1, 5, 1, 1, 1, 4, 1, 7, 1, 5, 1, 14, 6, 1, 1, 5, 1, 1, 1, 364, 5, 1, 29, 1, 4, 1, 1, 6, 1, 8, 1, 6, 1, 1, 5, 1, 7, 1, 5, 1, 14, 5, 1, 1, 5, 1, 367, 5, 1, 13, 1, 2, 1, 6, 1, 4, 6, 1, 1, 7, 1, 1, 1, 4, 1, 6, 1, 1, 1, 1, 5, 1, 6, 5, 1, 2, 12, 7, 1, 1, 19, 353, 20, 2, 1, 17, 1, 1, 1, 1, 19, 1, 2, 1, 17, 1, 1, 1, 18, 1, 1, 20, 353, 1, 19, 2, 1, 17, 3, 1, 18, 1, 1, 3, 17, 1, 1, 1, 18, 2, 20, 353, 1, 1, 18, 2, 1, 16, 1, 4, 1, 17, 1, 4, 1, 15, 1, 2, 1, 17, 1, 2, 1, 19, 354, 1, 1, 17, 2, 1, 14, 1, 1, 6, 1, 1, 14, 1, 6, 1, 1, 12, 1, 1, 2, 1, 16, 1, 4, 1, 18, 355, 1, 1, 1, 3, 1, 10, 1, 2, 1, 12, 1, 1, 1, 8, 1, 1, 1, 1, 2, 1, 5, 1, 1, 9, 1, 1, 9, 1, 1, 4, 1, 13, 1, 1, 1, 6, 1, 1, 1, 14, 1, 9932, 1, 1, 20, 2, 1, 1, 1, 13, 1, 19, 1, 5, 1, 18, 1, 5, 1, 16, 1, 1, 1, 9, 20, 1, 2, 15, 1, 1, 1, 1, 1, 320, 1, 1, 24, 1, 1, 1, 8, 20, 1, 5, 20, 5, 1, 19, 1, 1, 7, 20, 1, 2, 1, 20, 1, 320, 1, 26, 1, 1, 6, 20, 1, 5, 1, 19, 5, 1, 21, 1, 6, 20, 1, 2, 1, 22, 1, 320, 1, 26, 1, 5, 20, 1, 5, 20, 5, 1, 22, 1, 5, 20, 1, 2, 1, 22, 1, 1, 319, 1, 1, 26, 5, 20, 1, 4, 1, 20, 1, 4, 1, 22, 1, 5, 20, 1, 2, 1, 23, 1, 1, 319, 1, 26, 1, 4, 20, 1, 4, 1, 20, 1, 4, 1, 23, 1, 4, 20, 1, 2, 1, 25, 320, 1, 26, 4, 20, 1, 4, 1, 20, 1, 4, 1, 23, 1, 4, 20, 1, 2, 1, 25, 320, 1, 26, 1, 3, 20, 1, 4, 1, 20, 1, 4, 1, 24, 1, 3, 20, 1, 2, 1, 25, 1, 319, 1, 26, 1, 3, 20, 1, 4, 1, 6, 1, 1, 1, 1, 1, 1, 1, 1, 6, 1, 4, 1, 24, 1, 3, 20, 1, 2, 1, 12, 1, 1, 11, 1, 319, 1, 12, 1, 1, 12, 1, 3, 20, 1, 4, 1, 4, 1, 1, 2, 1, 12, 4, 1, 12, 1, 1, 10, 1, 3, 20, 1, 2, 1, 11, 1, 1, 1, 11, 1, 319, 1, 12, 1, 1, 12, 1, 3, 13, 7, 1, 4, 1, 2, 1, 1, 1, 15, 1, 4, 1, 12, 2, 1, 9, 1, 3, 12, 1, 10, 1, 11, 1, 2, 12, 320, 12, 1, 1, 1, 12, 3, 13, 12, 1, 1, 1, 1, 1, 16, 1, 4, 1, 12, 2, 1, 10, 3, 12, 11, 1, 11, 1, 2, 12, 320, 12, 1, 2, 1, 11, 3, 13, 12, 1, 1, 20, 4, 1, 12, 3, 9, 1, 3, 12, 11, 1, 11, 1, 2, 12, 320, 1, 11, 1, 2, 12, 3, 13, 12, 1, 1, 20, 1, 3, 1, 12, 3, 10, 3, 12, 11, 1, 11, 1, 2, 12, 320, 1, 11, 1, 2, 1, 10, 1, 3, 13, 12, 1, 1, 1, 19, 1, 3, 1, 12, 3, 10, 3, 12, 11, 1, 11, 1, 2, 11, 1, 320, 12, 1, 1, 1, 11, 1, 3, 13, 11, 1, 2, 1, 1, 8, 1, 10, 3, 1, 12, 3, 10, 3, 12, 11, 1, 11, 1, 2, 11, 1, 320, 12, 1, 1, 1, 11, 1, 3, 13, 11, 1, 3, 1, 7, 1, 1, 1, 8, 1, 3, 1, 12, 3, 10, 3, 12, 11, 1, 11, 1, 1, 1, 11, 1, 320, 12, 1, 1, 12, 1, 3, 20, 1, 3, 1, 4, 1, 1, 5, 1, 2, 1, 7, 1, 3, 1, 12, 2, 1, 9, 1, 3, 12, 11, 1, 11, 1, 1, 12, 1, 320, 26, 4, 20, 1, 3, 5, 1, 1, 5, 3, 1, 1, 7, 3, 1, 12, 2, 1, 9, 1, 3, 20, 1, 2, 1, 24, 1, 321, 25, 1, 4, 20, 1, 3, 1, 6, 1, 3, 1, 4, 1, 7, 3, 1, 11, 2, 11, 1, 3, 20, 1, 2, 1, 23, 1, 1, 321, 24, 1, 5, 20, 1, 3, 7, 1, 1, 1, 6, 8, 3, 1, 24, 4, 20, 1, 2, 1, 23, 1, 322, 22, 1, 1, 6, 20, 1, 3, 9, 7, 1, 1, 6, 1, 2, 1, 23, 1, 4, 20, 1, 2, 1, 20, 1, 1, 1, 323, 22, 1, 1, 6, 20, 1, 3, 1, 7, 1, 8, 1, 6, 1, 2, 1, 22, 1, 5, 20, 1, 2, 1, 21, 1, 324, 24, 1, 5, 20, 1, 3, 8, 1, 8, 1, 6, 1, 2, 1, 22, 1, 5, 20, 1, 2, 1, 22, 1, 323, 25, 1, 4, 20, 1, 2, 1, 8, 1, 8, 1, 6, 1, 2, 1, 21, 1, 6, 20, 1, 2, 1, 22, 1, 323, 13, 1, 12, 4, 20, 1, 2, 1, 8, 1, 8, 1, 6, 1, 2, 1, 20, 1, 7, 20, 1, 2, 1, 11, 2, 10, 1, 322, 12, 1, 2, 1, 10, 4, 20, 1, 2, 1, 8, 1, 8, 1, 6, 1, 2, 1, 18, 1, 1, 8, 20, 1, 2, 1, 12, 1, 10, 1, 322, 12, 1, 3, 1, 9, 1, 3, 13, 7, 1, 2, 1, 8, 1, 8, 1, 7, 2, 1, 11, 1, 4, 1, 1, 10, 12, 1, 10, 1, 11, 1, 1, 1, 9, 1, 322, 12, 1, 1, 1, 1, 10, 1, 3, 13, 10, 1, 9, 9, 1, 5, 1, 2, 1, 12, 16, 12, 11, 1, 11, 1, 1, 1, 9, 1, 322, 12, 1, 1, 3, 1, 1, 7, 1, 3, 13, 10, 9, 1, 2, 7, 1, 6, 2, 1, 12, 16, 12, 11, 1, 11, 1, 1, 11, 322, 12, 1, 1, 1, 2, 1, 1, 1, 6, 1, 3, 13, 10, 1, 8, 1, 1, 1, 7, 1, 6, 1, 1, 1, 12, 16, 12, 11, 1, 12, 1, 1, 10, 1, 321, 12, 1, 2, 1, 1, 1, 1, 1, 6, 1, 3, 13, 10, 9, 1, 1, 1, 5, 1, 1, 1, 1, 1, 4, 1, 1, 1, 12, 16, 12, 11, 1, 11, 1, 1, 1, 10, 1, 321, 12, 1, 4, 1, 1, 1, 6, 1, 3, 13, 9, 1, 9, 1, 2, 5, 1, 3, 1, 1, 1, 3, 1, 1, 12, 16, 12, 11, 1, 11, 1, 1, 1, 10, 1, 321, 12, 1, 7, 6, 1, 3, 13, 9, 1, 10, 1, 1, 5, 1, 8, 1, 1, 1, 12, 16, 12, 11, 1, 11, 1, 1, 1, 11, 321, 12, 1, 3, 1, 3, 1, 5, 1, 3, 13, 9, 1, 11, 1, 5, 1, 8, 1, 1, 1, 12, 16, 12, 11, 1, 12, 2, 10, 1, 321, 12, 1, 3, 1, 1, 1, 1, 1, 5, 1, 3, 13, 7, 1, 1, 12, 1, 5, 1, 8, 1, 1, 1, 12, 16, 20, 1, 2, 1, 11, 1, 2, 1, 10, 321, 12, 1, 3, 1, 2, 1, 6, 1, 3, 20, 1, 1, 1, 11, 1, 5, 1, 8, 1, 1, 1, 12, 16, 20, 1, 2, 1, 11, 1, 2, 10, 1, 321, 12, 1, 4, 9, 1, 3, 20, 1, 1, 1, 11, 6, 1, 8, 1, 1, 1, 12, 16, 20, 1, 2, 1, 11, 1, 2, 11, 321, 12, 1, 4, 1, 8, 1, 3, 20, 1, 1, 1, 10, 1, 6, 1, 9, 1, 1, 12, 16, 20, 1, 2, 1, 11, 1, 2, 1, 10, 1, 320, 12, 1, 5, 8, 1, 3, 20, 1, 1, 11, 1, 6, 1, 9, 1, 1, 12, 16, 20, 1, 2, 1, 11, 1, 2, 1, 10, 1, 320, 12, 1, 5, 1, 7, 1, 3, 20, 1, 1, 10, 1, 7, 1, 9, 1, 1, 12, 16, 20, 1, 2, 1, 11, 1, 2, 1, 10, 1, 320, 12, 1, 5, 1, 7, 1, 3, 20, 1, 1, 10, 1, 8, 1, 8, 1, 1, 12, 16, 20, 1, 2, 1, 11, 1, 2, 12, 320, 12, 1, 6, 1, 7, 3, 20, 1, 1, 9, 1, 9, 1, 8, 1, 1, 12, 16, 20, 1, 2, 1, 11, 1, 2, 1, 10, 1, 320, 12, 1, 6, 1, 6, 1, 3, 20, 1, 1, 8, 1, 1, 9, 1, 8, 1, 1, 12, 16, 20, 1, 2, 1, 11, 1, 2, 1, 10, 1, 320, 12, 1, 7, 1, 6, 1, 2, 20, 1, 1, 8, 1, 10, 9, 1, 1, 12, 16, 20, 1, 2, 1, 11, 1, 2, 1, 11, 320, 11, 1, 1, 7, 1, 7, 2, 1, 19, 1, 8, 1, 11, 1, 8, 1, 1, 11, 1, 16, 1, 20, 2, 1, 12, 3, 1, 9, 1, 321, 1, 8, 1, 10, 7, 1, 2, 1, 1, 124, 1, 1, 1, 322, 1, 6, 1, 11, 1, 1, 6, 1, 1, 1, 1, 1, 1, 121, 1, 1, 1, 321, 1, 2, 6, 1, 1, 1, 10, 1, 7, 1, 1, 4, 1, 117, 1, 1, 1, 1, 322, 1, 1, 1, 1, 5, 1, 1, 1, 11, 14, 1, 1, 113, 1, 1, 2, 1, 323, 1, 10, 1, 11, 1, 16, 1, 109, 1, 1, 3, 1, 324, 1, 9, 1, 1, 12, 16, 1, 1, 1, 105, 1, 1, 3, 1, 327, 1, 1, 1, 3, 1, 1, 1, 1, 13, 1, 17, 1, 1, 1, 101, 1, 1, 4, 1, 329, 1, 1, 3, 1, 1, 1, 14, 20, 1, 1, 1, 96, 1, 2, 4, 1, 1, 332, 1, 2, 1, 16, 23, 1, 1, 91, 1, 1, 1, 6, 1, 331, 1, 2, 1, 2, 1, 2, 1, 12, 1, 26, 1, 1, 85, 1, 1, 8, 1, 1, 332, 1, 1, 1, 1, 3, 1, 1, 1, 11, 1, 31, 1, 79, 1, 1, 9, 1, 1, 334, 3, 1, 3, 1, 1, 1, 11, 1, 1, 31, 1, 1, 1, 73, 1, 1, 11, 1, 336, 1, 8, 1, 13, 1, 1, 33, 1, 1, 1, 65, 1, 1, 1, 12, 1, 338, 1, 8, 1, 15, 1, 1, 34, 1, 1, 1, 1, 56, 1, 1, 1, 1, 1, 13, 1, 341, 8, 1, 17, 1, 1, 1, 36, 1, 1, 1, 1, 1, 45, 1, 1, 1, 17, 1, 1, 343, 1, 6, 1, 21, 1, 1, 39, 1, 1, 1, 1, 1, 1, 1, 1, 28, 1, 1, 1, 1, 1, 1, 1, 1, 20, 1, 345, 1, 7, 24, 1, 1, 48, 1, 2, 1, 4, 1, 4, 2, 3, 1, 1, 1, 1, 27, 1, 1, 347, 1, 7, 27, 1, 1, 1, 92, 1, 350, 6, 1, 31, 1, 1, 1, 83, 1, 1, 1, 353, 1, 4, 1, 36, 1, 1, 1, 1, 76, 1, 1, 356, 1, 4, 1, 40, 1, 1, 2, 1, 68, 1, 1, 360, 4, 1, 45, 1, 1, 1, 1, 1, 58, 1, 1, 1, 1, 364, 1, 1, 1, 52, 1, 1, 1, 1, 48, 1, 1, 1, 1, 1, 430, 1, 1, 1, 1, 1, 1, 1, 1, 1, 29, 1, 1, 1, 1, 1, 1, 1, 445, 1, 1, 1, 1, 1, 2, 1, 1, 5, 1, 2, 1, 2, 1, 1, 1, 2, 1, 30452, 
-  };
-  int x = 0, y = 0;
-  for(int i = 0; i < sizeof(imageIndices) / sizeof(imageIndices[0]); ++i) {
-      int index = imageIndices[i];
-      int count = imageCounts[i];
-      if(index >= 0) {
-          const char* color = imageColors[index];
-          Brain.Screen.setPenColor(color);
-          for(int j = 0; j < count; ++j) {
-              Brain.Screen.drawPixel(x++, y);
-              if(x >= 480) { x = 0; y++; }
-          }
-      } else {
-          x += count;
-          while(x >= 480) { x -= 480; y++; }
-      }
-  }
-}
 static inline void drawCenteredText(const Rect& r, const std::string& s, vex::color pen=vex::white) {
   Brain.Screen.setPenColor(pen);
   int tw = Brain.Screen.getStringWidth(s.c_str());
@@ -1424,74 +1333,43 @@ static inline void drawCenteredText(const Rect& r, const std::string& s, vex::co
   Brain.Screen.printAt(px, py, false, s.c_str());
 }
 
-// Draw rounded rectangle with specified corner radius
-static inline void drawRoundedRect(int x, int y, int w, int h, int radius, vex::color fillColor) {
-  Brain.Screen.setFillColor(fillColor);
-  Brain.Screen.setPenColor(fillColor);
-  
-  // Draw filled circles at the four corners
-  Brain.Screen.drawCircle(x + radius, y + radius, radius);
-  Brain.Screen.drawCircle(x + w - radius, y + radius, radius);
-  Brain.Screen.drawCircle(x + radius, y + h - radius, radius);
-  Brain.Screen.drawCircle(x + w - radius, y + h - radius, radius);
-  
-  // Draw the main rectangle parts (excluding corners)
-  Brain.Screen.drawRectangle(x + radius, y, w - 2*radius, h);
-  Brain.Screen.drawRectangle(x, y + radius, radius, h - 2*radius);
-  Brain.Screen.drawRectangle(x + w - radius, y + radius, radius, h - 2*radius);
-}
-
-// Modern joystick bar design
+// 水平條（-100~100）＋內文字置中
 static inline void drawAxisBarLabeled(const char* name, int val, const Rect& labelBox, const Rect& barBox) {
-  // Label (minimal, no background)
-  Brain.Screen.setPenColor(vex::color(180, 180, 180));
-  Brain.Screen.setFont(vex::fontType::mono12);
-  int labelX = labelBox.x + (labelBox.w - Brain.Screen.getStringWidth(name)) / 2;
-  Brain.Screen.printAt(labelX, labelBox.y + labelBox.h - 2, false, name);
+  // 左側標籤（置中）
+  fillRect(labelBox, vex::color(30,30,30));
+  strokeRect(labelBox, vex::color(80,80,80));
+  drawCenteredText(labelBox, name, vex::white);
 
-  // Modern bar background - subtle dark
-  fillRect(barBox, vex::color(20, 20, 25));
-  strokeRect(barBox, vex::color(50, 50, 55));
+  // 條底
+  strokeRect(barBox, vex::color(90,90,90));
+  fillRect({barBox.x+1, barBox.y+1, barBox.w-2, barBox.h-2}, vex::color(20,20,20));
 
-  // Center line (subtle)
+  // 0 中線
   int zeroX = barBox.x + barBox.w/2;
-  Brain.Screen.setPenColor(vex::color(40, 40, 45));
+  Brain.Screen.setPenColor(vex::color(90,90,90));
   Brain.Screen.drawLine(zeroX, barBox.y+1, zeroX, barBox.y + barBox.h - 2);
 
-  // Value bar - modern gradient-like effect with gold accent
+  // 值條
   int v = val; if(v>100) v=100; if(v<-100) v=-100;
   int half = (barBox.w-2)/2;
   int pix = (v * half) / 100;
   if (pix != 0) {
     int bx = (pix>0) ? zeroX : (zeroX+pix);
     int bw = (pix>0) ? pix : -pix;
-    // Use gold for positive, subtle red-orange for negative
-    vex::color barColor = (pix>0) ? vex::color(252, 190, 0) : vex::color(200, 100, 80);
-    fillRect({bx, barBox.y+2, bw, barBox.h-4}, barColor);
+    fillRect({bx, barBox.y+2, bw, barBox.h-4}, (pix>0)?vex::color(0,140,220):vex::color(220,140,0));
   }
 
-  // Value text - subtle
+  // 內文字置中（顯示數值）
   char buf[16];
   snprintf(buf, sizeof(buf), "%4d", val);
-  Brain.Screen.setPenColor(vex::color(200, 200, 200));
-  Brain.Screen.setFont(vex::fontType::mono12);
-  int textX = barBox.x + (barBox.w - Brain.Screen.getStringWidth(buf)) / 2;
-  Brain.Screen.printAt(textX, barBox.y + barBox.h - 2, false, buf);
+  drawCenteredText(barBox, buf, vex::color(230,230,230));
 }
 
-// Modern button design - minimal, clean aesthetic
+// 按鍵方塊
 static inline void drawButtonBox(const char* name, bool pressed, const Rect& r) {
-  if (pressed) {
-    // Pressed: subtle gold fill with gold border
-    fillRect(r, vex::color(252, 190, 0));  // Gold fill
-    strokeRect(r, vex::color(255, 220, 100));  // Lighter gold border
-    drawCenteredText(r, name, vex::color(20, 20, 20));  // Dark text on gold
-  } else {
-    // Unpressed: transparent with subtle border
-    fillRect(r, vex::transparent);
-    strokeRect(r, vex::color(60, 60, 70));  // Subtle border
-    drawCenteredText(r, name, vex::color(180, 180, 180));  // Gray text
-  }
+  vex::color fill = pressed ? vex::color(0,110,0) : vex::color(40,40,40);
+  vex::color pen  = pressed ? vex::color(0,220,0) : vex::color(90,90,90);
+  fillRect(r, fill); strokeRect(r, pen); drawCenteredText(r, name, vex::white);
 }
 
 // 小型指南針（顯示 heading 0~360）
@@ -1553,509 +1431,210 @@ static inline DashTab drawTabs(DashTab current, const char* autonText) {
   return out;
 }
 
-extern motor L1,L2,L3,R1,R2,R3,intake1,intake2;
-static motor* kMotors[] = { &L1,&R1,&L2,&R2,&L3,&R3,&intake1,&intake2};
+extern motor L1,L2,L3,R1,R2,R3,intake,intakedown;
+static motor* kMotors[] = { &L1,&R1,&L2,&R2,&L3,&R3,&intake,&intakedown};
 static const char* kMotorNames[] = { "L1","R1","L2","R2","L3","R3","INTK","IDWN"};
 static const int kMotorCount = sizeof(kMotors)/sizeof(kMotors[0]);
 
-// Get autonomous path waypoints for display
-static std::vector<Waypoint> getAutonPath(int autonIndex) {
-  std::vector<Waypoint> path;
-  
-  switch(autonIndex) {
-    case 0: // Right_43
-      path.push_back(Waypoint(86, 116.3, 0.0, 0.0));  // Start
-      path.push_back(Waypoint(100, 105, 0.0, 0.0));   // driveToXY - intake
-      path.push_back(Waypoint(93.5, 95, 0.0, 0.0));   // driveToXY - approach
-      // driveToXAtHeading(115, 135) - loader
-      path.push_back(Waypoint(115, 116.3, 135.0, 0.0)); // Approx loader pos
-      break;
-    case 1: // Left_43
-      path.push_back(Waypoint(54.4, 116.3, 0.0, 0.0)); // Start
-      path.push_back(Waypoint(36.4, 104, 0.0, 0.0));   // driveToXY - intake
-      path.push_back(Waypoint(47, 92.5, 0.0, 0.0));     // driveToXY - approach goal
-      path.push_back(Waypoint(26, 116, 0.0, 0.0));     // driveToXY - loader
-      break;
-    case 2: // Right_7
-      path.push_back(Waypoint(86, 116.3, 0.0, 0.0));    // Start
-      path.push_back(Waypoint(93.5, 93.5, 0.0, 0.0));  // driveToXY
-      path.push_back(Waypoint(115, 76, 0.0, 0.0));     // driveToXY - intake
-      path.push_back(Waypoint(93.5, 93.5, 0.0, 0.0));  // driveToXYBackward
-      // driveToXAtHeading(115, 135) - loader
-      path.push_back(Waypoint(115, 116.3, 135.0, 0.0)); // Approx loader pos
-      break;
-    case 3: // Left_7
-      path.push_back(Waypoint(54.4, 116.3, 0.0, 0.0)); // Start
-      path.push_back(Waypoint(48, 92.5, 0.0, 0.0));    // driveToXY
-      path.push_back(Waypoint(26, 75.5, 0.0, 0.0));    // driveToXY - intake
-      path.push_back(Waypoint(47, 93.5, 0.0, 0.0));    // driveToXYBackward
-      // driveToXAtHeading(24, 230) - loader
-      path.push_back(Waypoint(24, 116.3, 230.0, 0.0)); // Approx loader pos
-      break;
-    case 4: // Solo
-      path.push_back(Waypoint(86.4, 117.5, 90.0, 0.0)); // Start
-      path.push_back(Waypoint(110, 110, 0.0, 0.0));     // driveToXY
-      path.push_back(Waypoint(92, 92, 0.0, 0.0));       // driveToXY
-      path.push_back(Waypoint(46, 94.4, 0.0, 0.0));     // driveToXY - upper goal
-      // driveToXAtHeading(25, 225) - loader
-      path.push_back(Waypoint(25, 116, 225.0, 0.0));   // Approx loader pos
-      break;
-    case 5: // Skills
-      path.push_back(Waypoint(54, 117.5, 270.0, 0.0));  // Start
-      path.push_back(Waypoint(24, 116.5, 0.0, 0.0));    // driveToXY - loader 1
-      path.push_back(Waypoint(8.1, 90, 0.0, 0.0));     // driveToXY - cross field
-      path.push_back(Waypoint(10, 37, 0.0, 0.0));      // driveToXY
-      path.push_back(Waypoint(18.4, 24.9, 0.0, 0.0));  // driveToXY - long goal
-      path.push_back(Waypoint(116.8, 25, 0.0, 0.0));   // driveToXY - loader 3
-      path.push_back(Waypoint(131, 48, 0.0, 0.0));     // driveToXY - cross back
-      path.push_back(Waypoint(126.4, 104.4, 0.0, 0.0)); // driveToXY
-      path.push_back(Waypoint(119, 115.5, 0.0, 0.0));  // driveToXY - long goal
-      break;
-    case 6: // Record - no predefined path
-      break;
-    case 7: // blank1 - no predefined path
-      break;
-  }
-  
-  return path;
-}
-
-// ========= Award-Winning Status Dashboard =========
-// ========== MULTI-PAGE DASHBOARD SYSTEM ==========
-enum DashboardPage {
-  PAGE_OVERVIEW = 0,
-  PAGE_MOTORS = 1,
-  PAGE_SENSORS = 2,
-  PAGE_SYSTEM = 3
-};
-
+// ========= Dashboard（雙分頁：Inputs / Motors） =========
+// ========= Dashboard（雙分頁：Inputs / Motors） =========
 static inline void show_status_page(int selectedAuton) {
   while (Brain.Screen.pressing()) wait(10, msec);
-  
-  static DashboardPage currentPage = PAGE_OVERVIEW;
 
-  const char* labels[8] = {
-    "Right_43","Left_43","Right_7","Left_7","Solo",
-    "Skills","Record","blank1"
+  const char* labels[10] = {
+    "R_right","R_left","R_right_F","R_left_F","R_solo",
+    "B_right","B_left","B_right_F","B_left_F","B_solo"
   };
 
-  // Award-winning color scheme
-  const vex::color bgDark = vex::color(10, 10, 15);       // Deep dark background
-  const vex::color bgPanel = vex::color(20, 20, 28);     // Panel background
-  const vex::color accentGold = vex::color(252, 190, 0); // Team gold
-  const vex::color accentRed = vex::color(220, 50, 50);   // Alert red
-  const vex::color accentGreen = vex::color(50, 220, 100); // Success green
-  const vex::color textPrimary = vex::color(255, 255, 255);
-  const vex::color textSecondary = vex::color(160, 160, 170);
-  const vex::color borderColor = vex::color(50, 50, 60);
-  const vex::color tabActive = accentGold;
-  const vex::color tabInactive = vex::color(40, 40, 50);
-
+  DashTab tab = TAB_INPUTS;
+  DashTab prevTab = TAB_INPUTS;
   Brain.Screen.setFont(vex::fontType::mono12);
-  
-  // Team information
-  const char* teamName = "REAPER";
-  const char* teamNumber = "23083Z";
-  
+
+  // 版面參數
+  const int  MARGIN  = 8;
+  const int  TAB_H   = 22;
+  const Rect content = { MARGIN, TAB_H + MARGIN, 480 - 2*MARGIN, 240 - (TAB_H + 2*MARGIN) };
+
+  // 各分頁初始化旗標（只在剛切入該分頁時做一次）
+  bool inputsInit = false;
+  bool motorsInit = false;
+
+  // 先鋪一次全局底色
+  fillRect({0,0,480,240}, vex::color(18,18,18));
+
   while (true) {
-    // Clear screen
-    fillRect({0,0,480,240}, bgDark);
+    // 先畫分頁列（不清整頁，避免把 LOGO 擦掉）
+    tab = drawTabs(tab, labels[selectedAuton]);
+
+    // 分頁切換：只清「內容區」並重置 init
+    if (tab != prevTab) {
+      fillRect(content, vex::color(18,18,18));
+      strokeRect(content, vex::color(60,60,60));
+      if (tab == TAB_INPUTS)  inputsInit = false;
+      if (tab == TAB_MOTORS)  motorsInit = false;
+      prevTab = tab;
+    }
+
+    if (tab == TAB_INPUTS) {
+      // ===== Inputs 頁 =====
+      // 第一次進來：畫 LOGO（之後不再從 SD 讀，避免閃爍）
+      if (!inputsInit) {
+        const int barH = 20;
+        const int gapY = 8;
+        const int axTop = content.y;
+
+        // A4 條下面顯示 LOGO.bmp（240x240）
+        const int imgX = 35;                                        // 你要的 X
+        const int imgY = axTop + 3*(barH+gapY) + barH + 10;         // A4 底下 10px
+
+        if (Brain.SDcard.isInserted() && Brain.SDcard.exists("LOGO.bmp")) {
+          Brain.Screen.drawImageFromFile("LOGO.bmp", imgX, imgY);
+        } else {
+          Brain.Screen.setPenColor(vex::color(200,200,200));
+          Brain.Screen.printAt(imgX, imgY + 20, false, "LOGO.bmp not found");
+        }
+        inputsInit = true;
+      }
+
+      // —— 每幀只更新動態元件（不清整頁、也不重畫 LOGO） ——
+      const int labelW = 36;
+      const int barW   = (int)(content.w * 0.55);
+      const int barH   = 20;
+      const int gapY   = 8;
+      const int axLeft = content.x;
+      const int axTop  = content.y;
+
+      int a1 = Controller1.Axis1.position();
+      int a2 = Controller1.Axis2.position();
+      int a3 = Controller1.Axis3.position();
+      int a4 = Controller1.Axis4.position();
+
+      drawAxisBarLabeled("A1", a1, {axLeft,             axTop + 0*(barH+gapY), labelW, barH},
+                                {axLeft+labelW+6,       axTop + 0*(barH+gapY), barW,   barH});
+      drawAxisBarLabeled("A2", a2, {axLeft,             axTop + 1*(barH+gapY), labelW, barH},
+                                {axLeft+labelW+6,       axTop + 1*(barH+gapY), barW,   barH});
+      drawAxisBarLabeled("A3", a3, {axLeft,             axTop + 2*(barH+gapY), labelW, barH},
+                                {axLeft+labelW+6,       axTop + 2*(barH+gapY), barW,   barH});
+      drawAxisBarLabeled("A4", a4, {axLeft,             axTop + 3*(barH+gapY), labelW, barH},
+                                {axLeft+labelW+6,       axTop + 3*(barH+gapY), barW,   barH});
+
+      // 右上小指南針
+      Rect compass = { content.x + content.w - 90, axTop, 80, 80 };
+      drawCompass(compass, Inertial.heading(degrees));
+
+      // 右側：按鍵 3×4
+      int gridX = content.x + content.w - (3*70 + 2*6);
+      int gridY = compass.y + compass.h + 6;
+      int bw    = 70, bh = 20, sp = 6;
+
+      drawButtonBox("A",   Controller1.ButtonA.pressing(),   {gridX + 0*(bw+sp), gridY + 0*(bh+sp), bw, bh});
+      drawButtonBox("B",   Controller1.ButtonB.pressing(),   {gridX + 1*(bw+sp), gridY + 0*(bh+sp), bw, bh});
+      drawButtonBox("X",   Controller1.ButtonX.pressing(),   {gridX + 2*(bw+sp), gridY + 0*(bh+sp), bw, bh});
+
+      drawButtonBox("Y",   Controller1.ButtonY.pressing(),   {gridX + 0*(bw+sp), gridY + 1*(bh+sp), bw, bh});
+      drawButtonBox("L1",  Controller1.ButtonL1.pressing(),  {gridX + 1*(bw+sp), gridY + 1*(bh+sp), bw, bh});
+      drawButtonBox("L2",  Controller1.ButtonL2.pressing(),  {gridX + 2*(bw+sp), gridY + 1*(bh+sp), bw, bh});
+
+      drawButtonBox("R1",  Controller1.ButtonR1.pressing(),  {gridX + 0*(bw+sp), gridY + 2*(bh+sp), bw, bh});
+      drawButtonBox("R2",  Controller1.ButtonR2.pressing(),  {gridX + 1*(bw+sp), gridY + 2*(bh+sp), bw, bh});
+      drawButtonBox("Up",  Controller1.ButtonUp.pressing(),  {gridX + 2*(bw+sp), gridY + 2*(bh+sp), bw, bh});
+
+      drawButtonBox("Down", Controller1.ButtonDown.pressing(), {gridX + 0*(bw+sp), gridY + 3*(bh+sp), bw, bh});
+      drawButtonBox("Left", Controller1.ButtonLeft.pressing(), {gridX + 1*(bw+sp), gridY + 3*(bh+sp), bw, bh});
+      drawButtonBox("Right",Controller1.ButtonRight.pressing(),{gridX + 2*(bw+sp), gridY + 3*(bh+sp), bw, bh});
     
-    // ========== TOP HEADER BAR ==========
-    Rect headerBar = {0, 0, 480, 35};
-    fillRect(headerBar, bgPanel);
-    strokeRect(headerBar, borderColor);
-    
-    // Team branding (left side)
-    Brain.Screen.setPenColor(accentGold);
-    Brain.Screen.setFont(vex::fontType::mono20);
-    Brain.Screen.printAt(10, 25, false, "%s", teamName);
-    Brain.Screen.setPenColor(textSecondary);
-    Brain.Screen.setFont(vex::fontType::mono12);
-    Brain.Screen.printAt(10, 10, false, "Team %s", teamNumber);
-    
-    // Auton selection (center)
-    Brain.Screen.setPenColor(textPrimary);
-    Brain.Screen.setFont(vex::fontType::mono12);
-    Brain.Screen.printAt(200, 12, false, "Auton: %s", labels[selectedAuton]);
-    
-    // Robot state (right side)
-    const char* robotState = "DISABLED";
-    vex::color stateColor = textSecondary;
-    if (Competition.isEnabled()) {
-      if (Competition.isAutonomous()) {
-        robotState = "AUTONOMOUS";
-        stateColor = accentGreen;
-      } else if (Competition.isDriverControl()) {
-        robotState = "DRIVER";
-        stateColor = accentGold;
-      } else {
-        robotState = "ENABLED";
-        stateColor = accentGreen;
+      // 底部：氣動狀態
+      int pneuY = content.y + content.h - 20;
+      int pneuW = 68, pneuH = 18, pneuSP = 6;
+      // Center the 5 boxes: total width = 5*68 + 4*6 = 364, center offset = (content.w - 364) / 2
+      int totalPneuWidth = 5 * pneuW + 4 * pneuSP;
+      int pneuX = content.x + (content.w - totalPneuWidth) / 2;
+
+      drawPneuBox("no status", redlight.value(),       {pneuX + 0*(pneuW+pneuSP), pneuY, pneuW, pneuH});
+      drawPneuBox("no status", whitelight.value(),     {pneuX + 1*(pneuW+pneuSP), pneuY, pneuW, pneuH});
+      drawPneuBox("INTK",      intakeCylander.value(), {pneuX + 2*(pneuW+pneuSP), pneuY, pneuW, pneuH});
+      drawPneuBox("PUSH",      pushCylinder.value(),   {pneuX + 3*(pneuW+pneuSP), pneuY, pneuW, pneuH});
+      drawPneuBox("SHOT",      shooter.value(),        {pneuX + 4*(pneuW+pneuSP), pneuY, pneuW, pneuH});
+    }
+    else {
+      // ===== Motors 頁（放大字體 + 逐行清除避免陰影） =====
+      if (!motorsInit) {
+        // 清內容區一次、畫框與標題
+        fillRect(content, vex::color(18,18,18));
+        strokeRect({content.x, content.y, content.w, content.h - 2}, vex::color(90,90,90));
+        Brain.Screen.setPenColor(vex::color(200,200,200));
+        Brain.Screen.setFont(vex::fontType::mono20);    // 放大字體
+        // 標題往下擺，避免貼到 tabs
+        Brain.Screen.printAt(content.x, content.y + 4, "Motor position (deg)");
+        motorsInit = true;
+      }
+
+      // 版面配置（兩欄）
+      const int colW = (content.w - 16) / 2;
+      const int c1x  = content.x + 8;
+      const int c2x  = content.x + 8 + colW;
+
+      // 行高比字高大些，整體下移
+      const int rowH = 26;                 // 搭配 mono20
+      int rowTop = content.y + 28;         // ★ 往下移，避免貼到標題與 tabs
+
+      // 顏色
+      vex::color bg = vex::color(18,18,18);
+      vex::color fg = vex::white;
+
+      // 逐行更新：先清該行，再用不透明文字印上，避免陰影
+      for (int i = 0; i < kMotorCount; ++i) {
+        int colX = (i % 2 == 0) ? c1x : c2x;
+        int rowY = rowTop + (i / 2) * rowH;
+
+        // 清這一行的小區塊（不影響其它區域）
+        Rect rline = { colX, rowY - 18, colW - 8, rowH };
+        fillRect(rline, bg);
+
+        const char* name = (i < (int)(sizeof(kMotorNames)/sizeof(kMotorNames[0]))) ? kMotorNames[i] : "M?";
+        double posDeg = 0.0;
+        if (kMotors[i]) {
+            posDeg = deg_to_inches(kMotors[i]->position(degrees));
+        }
+        Brain.Screen.setPenColor(fg);
+        Brain.Screen.setFillColor(bg);
+        Brain.Screen.printAt(colX, rowY, /*bOpaque=*/true, "%-6s %8.1f", name, posDeg);
       }
     }
-    Brain.Screen.setPenColor(stateColor);
-    Brain.Screen.setFont(vex::fontType::mono12);
-    Brain.Screen.printAt(350, 12, false, "STATE:");
-    Brain.Screen.printAt(350, 25, false, "%s", robotState);
-    
-    // ========== TAB NAVIGATION BAR ==========
-    Rect tabBar = {0, 35, 480, 28};
-    fillRect(tabBar, vex::color(15, 15, 20));
-    
-    const char* tabNames[] = {"OVERVIEW", "MOTORS", "SENSORS", "SYSTEM"};
-    int tabWidth = 120;
-    int tabX = 0;
-    
-    // Draw tabs and handle clicks
-    for (int i = 0; i < 4; i++) {
-      bool isActive = (currentPage == i);
-      Rect tabRect = {tabX, 35, tabWidth, 28};
+
+    // ========== SPECIAL: If "Record" mode selected, show START button ==========
+    if (selectedAuton == 6) {  // Case 6 = Record mode
+      // Draw a big green START RECORDING button
+      Rect startButton = { 140, 170, 200, 50 };
+      fillRect(startButton, vex::color(0, 150, 0));
+      strokeRect(startButton, vex::color(0, 255, 0));
+      drawCenteredText(startButton, "START RECORDING", vex::white);
       
-      if (isActive) {
-        fillRect(tabRect, tabActive);
-        Brain.Screen.setPenColor(vex::color(20, 20, 20));
-      } else {
-        fillRect(tabRect, tabInactive);
-        Brain.Screen.setPenColor(textSecondary);
-      }
-      strokeRect(tabRect, borderColor);
-      
-      Brain.Screen.setFont(vex::fontType::mono12);
-      int textX = tabX + (tabWidth - Brain.Screen.getStringWidth(tabNames[i])) / 2;
-      Brain.Screen.printAt(textX, 53, false, "%s", tabNames[i]);
-      
-      // Check for tab click
+      // Check if START button pressed
       if (Brain.Screen.pressing()) {
         int tx = Brain.Screen.xPosition();
         int ty = Brain.Screen.yPosition();
-        if (tx >= tabX && tx < tabX + tabWidth && ty >= 35 && ty < 63) {
+        
+        if (tx >= startButton.x && tx <= startButton.x + startButton.w &&
+            ty >= startButton.y && ty <= startButton.y + startButton.h) {
+          // Button pressed - start recording!
           while (Brain.Screen.pressing()) wait(10, msec);
-          currentPage = (DashboardPage)i;
+          recordPath();  // Start recording immediately
+          break;  // Exit dashboard after recording finishes
         }
-      }
-      
-      tabX += tabWidth;
-    }
-    
-    // ========== PAGE CONTENT AREA ==========
-    Rect contentArea = {5, 68, 470, 167};
-    fillRect(contentArea, bgPanel);
-    strokeRect(contentArea, borderColor);
-    
-    // Render current page
-    switch (currentPage) {
-      case PAGE_OVERVIEW: {
-        // ========== OVERVIEW PAGE ==========
-        // Left column: Robot Position & Status
-        Brain.Screen.setPenColor(accentGold);
-        Brain.Screen.setFont(vex::fontType::mono12);
-        Brain.Screen.printAt(15, 85, false, "ROBOT POSE");
-        
-        RobotPose pose = get_robot_pose();
-        Brain.Screen.setPenColor(textPrimary);
-        Brain.Screen.printAt(15, 105, false, "X: %.1f\"", pose.x);
-        Brain.Screen.printAt(15, 125, false, "Y: %.1f\"", pose.y);
-        Brain.Screen.printAt(15, 145, false, "H: %.1f", pose.heading);
-        Brain.Screen.printAt(15, 165, false, "IMU: %.1f", Inertial.heading(degrees));
-        
-        // Battery
-        double batteryVoltage = Brain.Battery.capacity();
-        vex::color batteryColor = (batteryVoltage > 80) ? accentGreen : 
-                                  (batteryVoltage > 50) ? accentGold : accentRed;
-        Brain.Screen.setPenColor(accentGold);
-        Brain.Screen.printAt(15, 190, false, "BATTERY");
-        Brain.Screen.setPenColor(batteryColor);
-        Brain.Screen.printAt(15, 210, false, "%.0f%%", batteryVoltage);
-        
-        // Center: Chassis Motor summary (all 6 drive motors)
-        Brain.Screen.setPenColor(accentGold);
-        Brain.Screen.printAt(200, 85, false, "CHASSIS MOTORS");
-        int motorY = 105;
-        // Show all 6 drive motors (L1, L2, L3, R1, R2, R3)
-        motor* driveMotors[] = {&L1, &L2, &L3, &R1, &R2, &R3};
-        const char* driveNames[] = {"L1", "L2", "L3", "R1", "R2", "R3"};
-        for (int i = 0; i < 6; i++) {
-          if (driveMotors[i]) {
-            double pos = deg_to_inches(driveMotors[i]->position(degrees));
-            double vel = driveMotors[i]->velocity(vex::rpm);
-            double temp = driveMotors[i]->temperature(vex::celsius);
-            Brain.Screen.setPenColor(textPrimary);
-            Brain.Screen.printAt(200, motorY, false, "%-4s: %.1f\" %.0frpm", driveNames[i], pos, vel);
-            Brain.Screen.setPenColor((temp > 50) ? accentRed : textSecondary);
-            Brain.Screen.printAt(320, motorY, false, "%.0fC", temp);
-            motorY += 18;
-          }
-        }
-        
-        // Right: Intake Motors & Sensors
-        Brain.Screen.setPenColor(accentGold);
-        Brain.Screen.printAt(380, 85, false, "INTAKES");
-        Brain.Screen.setPenColor(textPrimary);
-        double intakePos = deg_to_inches(intake1.position(degrees));
-        double intakeVel = intake1.velocity(vex::rpm);
-        double idwnPos = deg_to_inches(intake2.position(degrees));
-        double idwnVel = intake2.velocity(vex::rpm);
-        Brain.Screen.printAt(380, 105, false, "INTK: %.1f\" %.0frpm", intakePos, intakeVel);
-        Brain.Screen.printAt(380, 123, false, "IDWN: %.1f\" %.0frpm", idwnPos, idwnVel);
-        
-        // Optical sensors brightness
-        Brain.Screen.setPenColor(accentGold);
-        Brain.Screen.printAt(380, 150, false, "OPTICAL");
-        Brain.Screen.setPenColor(textPrimary);
-        Brain.Screen.printAt(380, 170, false, "R: %d%%", (int)OpticalFirst.brightness());
-        Brain.Screen.printAt(380, 188, false, "L: %d%%", (int)OpticalSecond.brightness());
-        break;
-      }
-      
-      case PAGE_MOTORS: {
-        // ========== MOTORS PAGE ==========
-        Brain.Screen.setPenColor(accentGold);
-        Brain.Screen.setFont(vex::fontType::mono12);
-        Brain.Screen.printAt(15, 85, false, "MOTOR DETAILED DATA");
-        
-        // Column headers
-        Brain.Screen.setPenColor(textSecondary);
-        Brain.Screen.printAt(15, 105, false, "MOTOR");
-        Brain.Screen.printAt(80, 105, false, "PORT");
-        Brain.Screen.printAt(130, 105, false, "POS");
-        Brain.Screen.printAt(200, 105, false, "VEL");
-        Brain.Screen.printAt(260, 105, false, "CURR");
-        Brain.Screen.printAt(320, 105, false, "VOLT");
-        Brain.Screen.printAt(380, 105, false, "TEMP");
-        
-        int rowY = 125;
-        // Display all 8 motors (6 chassis + 2 intakes)
-        for (int i = 0; i < kMotorCount; i++) {
-          if (kMotors[i] && rowY < 240) {
-            motor* m = kMotors[i];
-            double pos = deg_to_inches(m->position(degrees));
-            double vel = m->velocity(vex::rpm);
-            double curr = m->current(vex::amp);
-            double volt = m->voltage(vex::volt);
-            double temp = m->temperature(vex::celsius);
-            int port = m->index() + 1;
-            
-            // Motor name
-            Brain.Screen.setPenColor(textPrimary);
-            Brain.Screen.printAt(15, rowY, false, "%-4s", kMotorNames[i]);
-            
-            // Port
-            Brain.Screen.setPenColor(textSecondary);
-            Brain.Screen.printAt(80, rowY, false, "%2d", port);
-            
-            // Position
-            Brain.Screen.setPenColor(textPrimary);
-            Brain.Screen.printAt(130, rowY, false, "%6.1f", pos);
-            
-            // Velocity
-            Brain.Screen.setPenColor((std::abs(vel) > 100) ? accentGreen : textPrimary);
-            Brain.Screen.printAt(200, rowY, false, "%5.0f", vel);
-            
-            // Current
-            vex::color currColor = (curr > 2.0) ? accentRed : textPrimary;
-            Brain.Screen.setPenColor(currColor);
-            Brain.Screen.printAt(260, rowY, false, "%4.2f", curr);
-            
-            // Voltage
-            Brain.Screen.setPenColor(textPrimary);
-            Brain.Screen.printAt(320, rowY, false, "%4.1f", volt);
-            
-            // Temperature (color coded)
-            vex::color tempColor = (temp > 50) ? accentRed : 
-                                   (temp > 40) ? accentGold : textPrimary;
-            Brain.Screen.setPenColor(tempColor);
-            Brain.Screen.printAt(380, rowY, false, "%4.0f", temp);
-            
-            rowY += 15;  // Spacing to fit all 8 motors
-          }
-        }
-        break;
-      }
-      
-      case PAGE_SENSORS: {
-        // ========== SENSORS PAGE ==========
-        Brain.Screen.setPenColor(accentGold);
-        Brain.Screen.setFont(vex::fontType::mono12);
-        Brain.Screen.printAt(15, 85, false, "SENSOR DATA");
-        
-        // Right Optical (PORT11)
-        Rect opt1Panel = {10, 105, 220, 60};
-        fillRect(opt1Panel, vex::color(18, 18, 25));
-        strokeRect(opt1Panel, borderColor);
-        Brain.Screen.setPenColor(accentGold);
-        Brain.Screen.printAt(15, 120, false, "RIGHT OPTICAL");
-        Brain.Screen.setPenColor(textPrimary);
-        Brain.Screen.printAt(15, 140, false, "Hue: %d", (int)OpticalFirst.hue());
-        Brain.Screen.printAt(15, 158, false, "Bright: %d", (int)OpticalFirst.brightness());
-        vex::color optColor = OpticalFirst.color();
-        Brain.Screen.printAt(120, 140, false, "Color: %s", (optColor == vex::color::red) ? "RED" : 
-                            (optColor == vex::color::blue) ? "BLUE" : "OTHER");
-        Brain.Screen.printAt(120, 158, false, "Object: %s", OpticalFirst.isNearObject() ? "YES" : "NO");
-        
-        // Left Optical (PORT15)
-        Rect opt2Panel = {240, 105, 220, 60};
-        fillRect(opt2Panel, vex::color(18, 18, 25));
-        strokeRect(opt2Panel, borderColor);
-        Brain.Screen.setPenColor(accentGold);
-        Brain.Screen.printAt(245, 120, false, "LEFT OPTICAL");
-        Brain.Screen.setPenColor(textPrimary);
-        Brain.Screen.printAt(245, 140, false, "Hue: %d", (int)OpticalSecond.hue());
-        Brain.Screen.printAt(245, 158, false, "Bright: %d", (int)OpticalSecond.brightness());
-        vex::color opt2Color = OpticalSecond.color();
-        Brain.Screen.printAt(350, 140, false, "Color: %s", (opt2Color == vex::color::red) ? "RED" : 
-                            (opt2Color == vex::color::blue) ? "BLUE" : "OTHER");
-        Brain.Screen.printAt(350, 158, false, "Object: %s", OpticalSecond.isNearObject() ? "YES" : "NO");
-        
-        // IMU Sensor with Calibrate Button
-        Rect imuPanel = {10, 175, 220, 60};
-        fillRect(imuPanel, vex::color(18, 18, 25));
-        strokeRect(imuPanel, borderColor);
-        Brain.Screen.setPenColor(accentGold);
-        Brain.Screen.printAt(15, 190, false, "INERTIAL (IMU)");
-        Brain.Screen.setPenColor(textPrimary);
-        double imuHeading = Inertial.heading(degrees);
-        Brain.Screen.printAt(15, 210, false, "Heading: %.1f", imuHeading);
-        
-        // Calibrate Button
-        Rect calibButton = {150, 190, 70, 25};
-        fillRect(calibButton, accentGold);
-        strokeRect(calibButton, borderColor);
-        Brain.Screen.setPenColor(vex::color(0, 0, 0));
-        Brain.Screen.setFont(vex::fontType::mono12);
-        Brain.Screen.printAt(165, 205, false, "CALIB");
-        
-        // Additional sensor info
-        Rect extraPanel = {240, 175, 220, 50};
-        fillRect(extraPanel, vex::color(18, 18, 25));
-        strokeRect(extraPanel, borderColor);
-        Brain.Screen.setPenColor(accentGold);
-        Brain.Screen.printAt(245, 190, false, "ADDITIONAL INFO");
-        Brain.Screen.setPenColor(textPrimary);
-        Brain.Screen.printAt(245, 210, false, "Controller: Connected");
-        Brain.Screen.printAt(245, 220, false, "Brain: V5");
-        break;
-      }
-      
-      case PAGE_SYSTEM: {
-        // ========== SYSTEM PAGE ==========
-        Brain.Screen.setPenColor(accentGold);
-        Brain.Screen.setFont(vex::fontType::mono12);
-        Brain.Screen.printAt(15, 85, false, "SYSTEM INFORMATION");
-        
-        // Team Info Panel
-        Rect teamPanel = {10, 105, 220, 50};
-        fillRect(teamPanel, vex::color(18, 18, 25));
-        strokeRect(teamPanel, borderColor);
-        Brain.Screen.setPenColor(accentGold);
-        Brain.Screen.printAt(15, 120, false, "TEAM INFO");
-        Brain.Screen.setPenColor(textPrimary);
-        Brain.Screen.printAt(15, 140, false, "Name: %s", teamName);
-        Brain.Screen.printAt(15, 158, false, "Number: %s", teamNumber);
-        Brain.Screen.printAt(15, 175, false, "Robot: REAPER");
-        
-        // Port Assignment Panel (expanded to show all)
-        Rect portPanel = {240, 105, 220, 130};
-        fillRect(portPanel, vex::color(18, 18, 25));
-        strokeRect(portPanel, borderColor);
-        Brain.Screen.setPenColor(accentGold);
-        Brain.Screen.printAt(245, 120, false, "PORT ASSIGNMENTS");
-        Brain.Screen.setPenColor(textSecondary);
-        Brain.Screen.setFont(vex::fontType::mono12);
-        
-        int portY = 138;
-        // Drive motors
-        Brain.Screen.setPenColor(textPrimary);
-        Brain.Screen.printAt(245, portY, false, "L1:%2d L2:%2d L3:%2d", 
-                            L1.index()+1, L2.index()+1, L3.index()+1);
-        portY += 13;
-        Brain.Screen.printAt(245, portY, false, "R1:%2d R2:%2d R3:%2d", 
-                            R1.index()+1, R2.index()+1, R3.index()+1);
-        portY += 13;
-        Brain.Screen.printAt(245, portY, false, "INT:%2d IDN:%2d", 
-                            intake1.index()+1, intake2.index()+1);
-        portY += 13;
-        Brain.Screen.printAt(245, portY, false, "R-OPT:%2d L-OPT:%2d", 
-                            OpticalFirst.index()+1, OpticalSecond.index()+1);
-        portY += 13;
-        Brain.Screen.printAt(245, portY, false, "IMU:%2d", Inertial.index()+1);
-        portY += 13;
-        // Pneumatics ports
-        Brain.Screen.printAt(245, portY, false, "PNEU: D,E,F,G");
-        
-        // Pneumatics Status
-        Rect pneuPanel = {10, 165, 220, 70};
-        fillRect(pneuPanel, vex::color(18, 18, 25));
-        strokeRect(pneuPanel, borderColor);
-        Brain.Screen.setPenColor(accentGold);
-        Brain.Screen.printAt(15, 180, false, "PNEUMATICS");
-        int pneuY = 200;
-        auto drawPneu = [&](const char* name, bool state, int x, int y) {
-          Brain.Screen.setPenColor(state ? accentGreen : textSecondary);
-          Brain.Screen.printAt(x, y, false, "%s: %s", name, state ? "ON " : "OFF");
-        };
-        drawPneu("INTK", intakeCylinder.value(), 80, pneuY);
-        break;
       }
     }
-    
-    // ========== CALIBRATE BUTTON HANDLING (Sensors Page) ==========
-    if (currentPage == PAGE_SENSORS && Brain.Screen.pressing()) {
-      int tx = Brain.Screen.xPosition();
-      int ty = Brain.Screen.yPosition();
-      Rect calibButton = {150, 190, 70, 25};
-      if (tx >= calibButton.x && tx < calibButton.x + calibButton.w &&
-          ty >= calibButton.y && ty < calibButton.y + calibButton.h) {
-        while (Brain.Screen.pressing()) wait(10, msec);
-        // Start calibration
-        Inertial.calibrate();
-        // Show calibration status
-        while (Inertial.isCalibrating()) {
-          Brain.Screen.setPenColor(accentGold);
-          Brain.Screen.printAt(15, 230, false, "Calibrating IMU...");
-          wait(50, msec);
-        }
-        Brain.Screen.setPenColor(accentGreen);
-        Brain.Screen.printAt(15, 230, false, "Calibration Done!");
-        wait(1000, msec);
-      }
-    }
-    
-    // ========== EXIT HANDLING ==========
-    // Touch anywhere in header to return
+
+    // 觸控返回（點 tabs 區域只切換，不返回）
     if (Brain.Screen.pressing()) {
       int ty = Brain.Screen.yPosition();
-      if (ty < 35) {  // Header area
+      if (!(ty >= 0 && ty <= TAB_H)) {
         while (Brain.Screen.pressing()) wait(10, msec);
-        break;  // Return to auton selection
+        break;   // 回到 pre_auton 的選單頁
       }
     }
-    
-    // ========== RECORD MODE HANDLING ==========
-    if (selectedAuton == 6) {  // Record mode
-      // Show START RECORDING button on Overview page
-      if (currentPage == PAGE_OVERVIEW) {
-        Rect startButton = {160, 180, 160, 35};
-        fillRect(startButton, accentGreen);
-        strokeRect(startButton, accentGold);
-        Brain.Screen.setPenColor(vex::color(20, 20, 20));
-        Brain.Screen.setFont(vex::fontType::mono20);
-        drawCenteredText(startButton, "START RECORDING", vex::color(20, 20, 20));
-        
-        if (Brain.Screen.pressing()) {
-          int tx = Brain.Screen.xPosition();
-          int ty = Brain.Screen.yPosition();
-          if (tx >= startButton.x && tx <= startButton.x + startButton.w &&
-              ty >= startButton.y && ty <= startButton.y + startButton.h) {
-            while (Brain.Screen.pressing()) wait(10, msec);
-            recordPath();
-            break;
-          }
-        }
-      }
-    }
-    
-    wait(50, msec);  // Update rate
+
+    wait(100, msec);
   }
 }
 
@@ -2066,7 +1645,7 @@ void pre_auton(void)
   vexcodeInit();
   default_constants();
 
-/*// ===== SD Card Test =====
+/*// ===== SD 卡測試 =====
   Brain.Screen.clearScreen();
   Brain.Screen.setFont(vex::fontType::mono12);
   Brain.Screen.setPenColor(vex::white);
@@ -2090,92 +1669,11 @@ void pre_auton(void)
   }
   wait(10,sec);
   */// =======================================================================
-  
-  // Show cute running animation during calibration
-  Brain.Screen.clearScreen();
-  
-  // Draw "Calibrating..." text
-  Brain.Screen.setPenColor(vex::color(255, 255, 255));
-  Brain.Screen.printAt(150, 180, "Calibrating IMU...");
-  
-  wait(50, msec);
-  
-/*// ===== SD Card Test =====
-  Brain.Screen.clearScreen();
-  Brain.Screen.setFont(vex::fontType::mono12);
-  Brain.Screen.setPenColor(vex::white);
-
-  if (Brain.SDcard.isInserted()) {
-    Brain.Screen.printAt(10, 20, false, "SD card detected.");
-
-    if (Brain.SDcard.exists("field.bmp")) {
-      Brain.Screen.printAt(10, 40, false, "Loading field.bmp ...");
-      bool ok = Brain.Screen.drawImageFromFile("field.bmp", 0, 0);
-      if (ok) {
-        Brain.Screen.printAt(10, 60, false, "Image loaded OK.");
-      } else {
-        Brain.Screen.printAt(10, 60, false, "Image load failed.");
-      }
-    } else {
-      Brain.Screen.printAt(10, 40, false, "field.bmp not found.");
-    }
-  } else {
-    Brain.Screen.printAt(10, 20, false, "No SD card detected.");
-  }
-  wait(10,sec);
-  */// =======================================================================
-  
-  // Show cute running animation during calibration
-  Brain.Screen.clearScreen();
-  Brain.Screen.setFont(vex::fontType::mono20);
-  Brain.Screen.setPenColor(vex::color(252, 190, 0));  // Gold color
-  
-  int animFrame = 0;
-  int animX = 50;
-  const int animY = 100;
-  const int animSpeed = 3;
-  
   Inertial.calibrate();
 
   while (Inertial.isCalibrating()) {
     whitelight = 0;
-    
-    // Clear previous frame
-    Brain.Screen.setFillColor(vex::color(0, 0, 0));
-    Brain.Screen.drawRectangle(animX - 5, animY - 30, 100, 60);
-    
-    // Draw running character animation (simple stick figure)
-    animFrame++;
-    int legOffset = (animFrame / 5) % 2 == 0 ? 5 : -5;  // Legs alternate
-    
-    // Body
-    Brain.Screen.setPenColor(vex::color(252, 190, 0));
-    Brain.Screen.drawLine(animX, animY - 20, animX, animY);
-    
-    // Head (circle)
-    Brain.Screen.drawCircle(animX, animY - 25, 5);
-    
-    // Arms
-    Brain.Screen.drawLine(animX, animY - 15, animX - 8, animY - 10);
-    Brain.Screen.drawLine(animX, animY - 15, animX + 8, animY - 10);
-    
-    // Legs (alternating for running effect)
-    Brain.Screen.drawLine(animX, animY, animX - 5, animY + 10 + legOffset);
-    Brain.Screen.drawLine(animX, animY, animX + 5, animY + 10 - legOffset);
-    
-    // Move character
-    animX += animSpeed;
-    if (animX > 430) animX = 50;  // Loop back
-    
-    // Draw "Calibrating..." text
-    Brain.Screen.setPenColor(vex::color(255, 255, 255));
-    Brain.Screen.printAt(150, 180, "Calibrating IMU...");
-    
-    wait(50, msec);
   }
-  
-  // Clear animation when done
-  Brain.Screen.clearScreen();
   Controller1.Screen.print("ok!");
   redlight = 1;
   whitelight = 1;
@@ -2186,36 +1684,23 @@ void pre_auton(void)
   R1.resetPosition(); R2.resetPosition(); R3.resetPosition();
   wait(0.05, sec);  // Small delay for reset to take effect
 
-  // Color #fcbe00 = RGB(252, 190, 0)
-  vex::color boxColor = vex::color(252, 190, 0);  // #fcbe00
+  vex::color red   = vex::color::red;
+  vex::color blue  = vex::color::blue;
   vex::color white = vex::color::white;
-  vex::color black = vex::color::black;
 
   int previous_selection = -1;
 
+  const int cols      = 5;
   const int screen_w  = 480;
   const int screen_h  = 240;
-  
-  // New layout: 4 boxes on left, 4 boxes on right, logo in center
-  const int box_width = 110;  // Width of each box (reduced from 140)
-  const int box_height = 55;  // Height of each box
-  // No rounded corners - using regular rectangles
-  const int left_start_x = 10;  // Left side boxes start here
-  const int right_start_x = 360;  // Right side boxes start here (adjusted for narrower boxes)
-  const int center_x = 160;  // Center area for logo (between left and right boxes, adjusted)
-  const int center_y = 92;   // Vertical center
-  const int logo_size = 100;  // Logo size (will be scaled)
-  const int box_spacing = 5;  // Spacing between boxes
-  
-  // Mapping: Left side boxes (autons 1, 3, 5, 7), Rigiht side boxes (autons 0, 2, 4, 6)
-  // Left: Left_43(1), Left_7(3), Skills(5), blank1(7)
-  // Right: Right_43(0), Right_7(2), Solo(4), Record(6)
-  const int left_autons[4] = {1, 3, 5, 7};  // Left_43, Left_7, Skills, blank1
-  const int right_autons[4] = {0, 2, 4, 6}; // Right_43, Right_7, Solo, Record
+  const int col_width = screen_w / cols;
 
-  const char* labels[8] = {
+  const int red_height  = screen_h / 2 + 6;
+  const int blue_height = screen_h - red_height;
+
+  const char* labels[10] = {
     "Right_43","Left_43","Right_7","Left_7","Solo",
-    "Skills","Record","blank1"
+    "Skills","Record","blank1","blank2","blank3"
   };
 
   Brain.Screen.setFont(vex::fontType::mono20);
@@ -2225,55 +1710,26 @@ void pre_auton(void)
     if (current_auton_selection != previous_selection)
     {
       previous_selection = current_auton_selection;
-      
-      // Clear screen
-      Brain.Screen.clearScreen();
 
-      // Draw logo in center - draw AFTER boxes so it's on top
-      // Logo is drawn programmatically using drawLogo() function
-
-      // Draw left side boxes (4 boxes)
-      for (int i = 0; i < 4; i++)
+      for (int i = 0; i < 10; i++)
       {
-        int auton_index = left_autons[i];
-        int x = left_start_x;
-        int y = 10 + i * (box_height + box_spacing);
+        int col = i % cols;
+        bool top = (i < cols);
 
-        vex::color fillColor = (current_auton_selection == auton_index) ? white : boxColor;
-        vex::color textColor = black;  // All text is black
+        int x = col * col_width;
+        int y = top ? 0 : red_height;
+        int h = top ? red_height : blue_height;
 
-        // Draw regular rectangle (no rounded corners)
+        vex::color fillColor = (current_auton_selection == i) ? white : (top ? red : blue);
+        vex::color textColor = (current_auton_selection == i) ? red   : white;
+
         Brain.Screen.setFillColor(fillColor);
-        Brain.Screen.setPenColor(fillColor);  // Set pen color to match fill to avoid border
-        Brain.Screen.drawRectangle(x, y, box_width, box_height);
+        Brain.Screen.drawRectangle(x, y, col_width, h);
 
-        Rect r { x, y, box_width, box_height };
-        drawCenteredText(r, labels[auton_index], textColor);
+        Rect r { x, y, col_width, h };
+        drawCenteredText(r, labels[i], textColor);
+        
       }
-
-      // Draw right side boxes (4 boxes)
-      for (int i = 0; i < 4; i++)
-      {
-        int auton_index = right_autons[i];
-        int x = right_start_x;
-        int y = 10 + i * (box_height + box_spacing);
-
-        vex::color fillColor = (current_auton_selection == auton_index) ? white : boxColor;
-        vex::color textColor = black;  // All text is black
-
-        // Draw regular rectangle (no rounded corners)
-        Brain.Screen.setFillColor(fillColor);
-        Brain.Screen.setPenColor(fillColor);  // Set pen color to match fill to avoid border
-        Brain.Screen.drawRectangle(x, y, box_width, box_height);
-
-        Rect r { x, y, box_width, box_height };
-        drawCenteredText(r, labels[auton_index], textColor);
-      }
-      
-      // Draw logo AFTER boxes so it appears on top
-      // This ensures logo is visible even if boxes overlap
-      // Logo data format expects to start from (0,0) - the data includes positioning
-      drawLogo();
     }
 
     if (Brain.Screen.pressing())
@@ -2281,28 +1737,19 @@ void pre_auton(void)
       int touchX = Brain.Screen.xPosition();
       int touchY = Brain.Screen.yPosition();
 
-      // Check if touch is in left side boxes
-      if (touchX >= left_start_x && touchX <= left_start_x + box_width)
-      {
-        int box_index = (touchY - 10) / (box_height + box_spacing);
-        if (box_index >= 0 && box_index < 4)
-        {
-          current_auton_selection = left_autons[box_index];
-          show_status_page(current_auton_selection);
-          wait(0.3, sec);
-        }
+      int col = touchX / col_width;
+      int row = (touchY < red_height) ? 0 : (touchY < red_height + blue_height ? 1 : -1);
+
+      if (col >= 0 && col < cols && (row == 0 || row == 1)) {
+        current_auton_selection = col + row * cols;
+        
+
+        // 進入第二頁（Dashboard）
+        
+        show_status_page(current_auton_selection);
       }
-      // Check if touch is in right side boxes
-      else if (touchX >= right_start_x && touchX <= right_start_x + box_width)
-      {
-        int box_index = (touchY - 10) / (box_height + box_spacing);
-        if (box_index >= 0 && box_index < 4)
-        {
-          current_auton_selection = right_autons[box_index];
-          show_status_page(current_auton_selection);
-          wait(0.3, sec);
-        }
-      }
+
+      wait(0.3, sec);
     }
 
     wait(20, msec);
@@ -2323,7 +1770,7 @@ void autonomous(void)
   {
     selectedTeamColor = vex::color::red; // 紅隊
   }
-  else if (current_auton_selection >= 5 && current_auton_selection <= 7)
+  else if (current_auton_selection >= 5 && current_auton_selection <= 9)
   {
     selectedTeamColor = vex::color::blue; // 藍隊
   }
@@ -2359,6 +1806,12 @@ void autonomous(void)
   case 7:
     blank1();
     break;
+  case 8:
+    blank2();
+    break;
+  case 9:
+    blank3();
+    break;
   }
   
 }
@@ -2369,61 +1822,44 @@ void autonomous(void)
 
 int intakeControlTask()
 {
+  intake.setMaxTorque(100, percent);
 
   while (true)
   {
     // 依優先權：L1 > L2 > R1 > R2
     if (Controller1.ButtonL1.pressing())
     {
-      // reverse all / score middle lower goal
-      intake1.spin(reverse, 12, volt);
-      intake2.spin(reverse, 12, volt);
-      shooterLower.spin(reverse, 12, volt);
+      // L1：只動 intakedown 反轉
+      intake.spin(forward, 12, volt);
+      intakedown.spin(forward, 12, volt);
     }
-    
+    /*
     else if (Controller1.ButtonL2.pressing())
     {
-      // score middle upper goal
-      blockCylinder = false;
-      intake1.spin(forward, 12, volt);
-      intake2.spin(forward, 12, volt);
-      shooterLower.spin(reverse, 12, volt);
+      // L2：只動 intakedown 正轉
+      intake.spin(reverse, 12, volt);
+      intakedown.spin(reverse, 9, volt);
     }
-
-    else if (Controller1.ButtonR1.pressing() && Controller1.ButtonR2.pressing())
+      */
+    else if (Controller1.ButtonR1.pressing())
     {
-      // score long goal
-      blockCylinder = true;
-      shooterUpper.spin(forward, 12, volt);
-      intake1.spin(forward, 12, volt);
-      intake2.spin(forward, 12, volt);
-      shooterLower.spin(forward, 12, volt);
+      // 原本功能保留：R1
+      intake.spin(reverse, 12, volt);
+      intakedown.spin(reverse, 12, volt);
     }
-      
-    else if (Controller1.ButtonR1.pressing() && !Controller1.ButtonR2.pressing())
+    /*
+    else if (Controller1.ButtonR2.pressing())
     {
-      // intake and store
-      blockCylinder = false;
-      intake1.spin(forward, 12, volt);
-      intake2.spin(forward, 12, volt);
-      shooterLower.spin(forward, 12, volt);
+      // 原本功能保留：R2
+      intake.spin(reverse, 12, volt);
+      intakedown.spin(reverse, 12, volt);  
     }
-    
-    else if (Controller1.ButtonR2.pressing() && !Controller1.ButtonR1.pressing())
-    {
-      // score long goal
-      blockCylinder = true;
-      shooterUpper.spin(forward, 12, volt);
-    }
-    
+    */
     else
     {
       // 停止
-      intake1.stop(coast);
-      intake2.stop(coast);
-      shooterUpper.stop(coast);
-      shooterLower.stop(coast);
-      blockCylinder = false;
+      intake.stop(coast);
+      intakedown.stop(coast);
     }
 
     wait(20, msec);
@@ -2444,21 +1880,22 @@ void usercontrol(void)
   }
   
   // Start background tasks
+  task notetask(autonoteTask, 0);
   task intake(intakeControlTask, 0);
+  task opticalLight(opticalLightTask, 0);
   
   // Set up button callbacks
-  Controller1.ButtonDown.pressed(blockswitch);
-  Controller1.ButtonUp.pressed(park);
-  Controller1.ButtonLeft.pressed(cylinderSwitch);
+  Controller1.ButtonRight.pressed(shooterSwitch);
+  Controller1.ButtonL2.pressed(wingSwitch);
+  Controller1.ButtonB.pressed(pushSwitch);
 
+  Controller1.ButtonY.pressed(shooterPushSwitch);
+  Controller1.ButtonR2.pressed(cylinderSwitch);
   
   // Main driver control loop - minimal for maximum responsiveness
   while (1)
   {
-    Controller1.Screen.clearScreen();
-    Controller1.Screen.setCursor(1, 1);
-    Controller1.Screen.print("Heading: %.1f", Inertial.heading());
-    chassis.control_holonomic(); // Holonomic drive control (throttle, turn, strafe)
+    chassis.control_tank(100); // 底盤控制
   wait(20, msec);
   }
 }
